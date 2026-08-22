@@ -18,48 +18,54 @@ etc/                    # ストア掲載用のスクリーンショット・ア
 
 ## アーキテクチャ
 
-`service_worker.js` 1ファイルのイベント駆動。状態は Chrome 側（`tab.mutedInfo`）と
-`chrome.storage.session` にのみ持ち、Service Worker 内に永続的な状態を置かない。
+`service_worker.js` 1ファイルのイベント駆動。**状態は一切持たない** —
+必要な情報はすべて Chrome 側の `tab.mutedInfo` から読み取る。
 
 | イベント | 処理 |
 |---|---|
 | `runtime.onInstalled` / `runtime.onStartup` | `syncAllTabs()` — 全タブをミュートし、アイコンを同期 |
 | `tabs.onCreated` | `muteTab()` |
 | `tabs.onUpdated` (`status === 'loading'`) | `muteTab()` — ページ遷移のたびに再ミュート |
-| `tabs.onUpdated` (`changeInfo.mutedInfo`) | アイコン更新＋ユーザー操作なら記録更新 |
-| `tabs.onRemoved` / `tabs.onReplaced` | アンミュート記録の破棄・引き継ぎ |
-| `action.onClicked` | ミュート状態のトグル＋記録更新 |
+| `tabs.onUpdated` (`changeInfo.mutedInfo`) | アイコン更新 |
+| `action.onClicked` | ミュート状態のトグル |
 
 ### ミュート方針
 
 デフォルトは「常にミュート」。ただし**ユーザーが明示的にアンミュートしたタブは、
-そのタブを閉じるまで再ミュートしない**。この例外を `chrome.storage.session` の
-`unmutedTabs`（タブIDの配列）で管理している。
+そのタブを閉じるまで再ミュートしない**。
+
+この例外の判定には `tab.mutedInfo.reason` を使う。`reason` は「最後にミュート状態を
+変更した理由」で、**一度も変更されていないタブでは未設定**になる。
+この拡張機能は自動的にアンミュートしないため、「アンミュート状態かつ `reason` あり」は
+誰かが意図的にアンミュートしたことを意味する。
+
+| タブの状態 | `mutedInfo` | 判定 |
+|---|---|---|
+| 新規タブ | `{muted: false}` | ミュートする |
+| ミュート済み | `{muted: true, reason: 'extension'}` | 何もしない |
+| アイコンでアンミュート | `{muted: false, reason: 'extension'}` | スキップ |
+| タブのスピーカーでアンミュート | `{muted: false, reason: 'user'}` | スキップ |
 
 ## 設計上の決定（変更前に読むこと）
 
-- **`permissions` は `storage` のみ**。`chrome.tabs.update({muted})` と `tabs.query({})` は
-  権限不要で動く（`url` / `title` / `favIconUrl` に触れないため `tabs` 権限は要らない）。
-  インストール時の権限警告が出ない状態を維持したいので、安易に権限を増やさない。
+- **`permissions` は空**。`chrome.tabs.update({muted})` と `tabs.query({})` は
+  権限なしで動く（`url` / `title` / `favIconUrl` に触れないため `tabs` 権限は要らない）。
+  インストール時に権限警告が出ない状態を維持したいので、**権限は増やさない**。
+  これは製品の売りなので、実装の都合で権限を足す前に別の手段を探すこと。
 
-- **`chrome.storage.session` を使う理由**: MV3 の Service Worker は約30秒のアイドルで停止し、
-  メモリ上の変数は失われる。アンミュートの選択を Set でメモリ保持すると、
-  ユーザーがアンミュートした直後に SW が落ちて選択が消える。
-  `storage.session` はブラウザセッション中ディスクに書かずに保持されるため、この用途に合う。
-  ブラウザ再起動でクリアされるのは意図した挙動（毎回ミュートから始まる）。
+- **状態を自前で持たない**。v1.1.0 の実装では `chrome.storage.session` に
+  アンミュートしたタブIDを記録していたが、`storage` 権限が必要になるうえ、
+  読み書きの直列化・タブ削除時の破棄・`onReplaced` でのID引き継ぎが必要で複雑だった。
+  `mutedInfo.reason` は Chrome が同じ情報を保持しているので、二重管理をやめた。
+
+- **`syncAllTabs()` は `muteTab(tab, true)` で強制ミュートする**。
+  ブラウザ再起動で復元されたタブが前セッションの `reason` を保持している可能性があるため、
+  起動時だけは `reason` を無視する。これがないと再起動後もアンミュートが引き継がれうる。
 
 - **`muteTab()` の早期 return は `tab.mutedInfo?.muted === true` に限定している**。
   以前は `if (tab && tab.mutedInfo && !tab.mutedInfo.muted)` というガードで、
   `mutedInfo` が取れないときに何もせず抜けていた。これが「たまにミュートされない」原因だった。
   `chrome.tabs.update(id, {muted: true})` は冪等なので、状態が不明なら適用してよい。
-
-- **`mutedInfo.reason` でユーザー操作と拡張機能の操作を区別している**。
-  タブのスピーカーアイコンからの操作は `'user'`、`chrome.tabs.update` 経由は `'extension'`。
-  `'user'` のときだけ記録を更新することで、拡張機能自身の変更を誤ってユーザーの意思として
-  記録するのを防いでいる。
-
-- **`serialize()` で storage の read-modify-write を直列化している**。
-  複数のタブイベントが並行すると get→set の間に別の更新が挟まり、記録が失われるため。
 
 - **アイコンは `chrome.action.setIcon({tabId})` でタブ単位に設定する**。
   未設定のタブには manifest の `default_icon`（ミュートアイコン）が使われるため、

@@ -19,10 +19,6 @@
     "url": "https://zenn.dev/harurow/"
   },
 
-  "permissions": [
-    "storage"
-  ],
-
   "action": {
     "default_title": "__MSG_app_title__",
     "default_icon": {

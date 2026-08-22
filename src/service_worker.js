@@ -14,11 +14,6 @@ const actionIcons = {
 // デバッグモード（本番環境ではfalseに設定）
 const DEBUG = false
 
-// ユーザーが明示的にアンミュートしたタブIDを保存するキー
-// chrome.storage.session を使うことで、Service Worker が停止しても
-// ブラウザセッション中は選択が維持される
-const UNMUTED_TABS_KEY = 'unmutedTabs'
-
 /**
  * デバッグログを出力する関数
  * @param {string} message - ログメッセージ
@@ -38,76 +33,19 @@ function debugLog (message, data) {
 debugLog(`SilentTab Service Worker started at ${new Date().toLocaleString()}. Extension ID:`, chrome.runtime.id)
 
 /**
- * storage の read-modify-write を直列化するためのキュー
- * 複数のタブイベントが並行しても更新が失われないようにする
- * @type {Promise<any>}
- */
-let storageQueue = Promise.resolve()
-
-/**
- * 処理を直列に実行する
- * @param {() => Promise<any>} task - 実行する処理
- * @returns {Promise<any>}
- */
-function serialize (task) {
-  const result = storageQueue.then(task)
-  storageQueue = result.then(() => {}, () => {})
-  return result
-}
-
-/**
- * ユーザーが明示的にアンミュートしたタブIDの集合を取得する
- * @returns {Promise<Set<number>>}
- */
-async function getUnmutedTabIds () {
-  try {
-    const stored = await chrome.storage.session.get(UNMUTED_TABS_KEY)
-    return new Set(stored[UNMUTED_TABS_KEY] ?? [])
-  } catch (ex) {
-    console.error('Error reading unmuted tab list:', ex)
-    return new Set()
-  }
-}
-
-/**
- * タブのアンミュート記録を更新する
- * @param {number} tabId - タブID
- * @param {boolean} unmuted - ユーザーがアンミュートを選択したか
- * @returns {Promise<void>}
- */
-async function rememberUnmutedTab (tabId, unmuted) {
-  if (typeof tabId !== 'number' || tabId === chrome.tabs.TAB_ID_NONE) {
-    return
-  }
-
-  await serialize(async () => {
-    try {
-      const ids = await getUnmutedTabIds()
-      if (ids.has(tabId) === unmuted) {
-        return
-      }
-
-      if (unmuted) {
-        ids.add(tabId)
-      } else {
-        ids.delete(tabId)
-      }
-
-      await chrome.storage.session.set({ [UNMUTED_TABS_KEY]: [...ids] })
-      debugLog('Unmuted tab list updated:', [...ids])
-    } catch (ex) {
-      console.error('Error updating unmuted tab list:', ex)
-    }
-  })
-}
-
-/**
  * タブをミュート状態にする関数
- * ユーザーが明示的にアンミュートしたタブは対象外とする
+ *
+ * ユーザーが意図的にアンミュートしたタブは対象外とする。
+ * この判定には tab.mutedInfo.reason を使う。reason は「最後にミュート状態を
+ * 変更した理由」で、一度も変更されていないタブでは未設定になる。
+ * この拡張機能は自動的にアンミュートすることはないため、
+ * 「アンミュート状態かつ reason あり」は誰かが意図的にアンミュートしたことを意味する。
+ *
  * @param {object} tab - タブオブジェクト
+ * @param {boolean} [force] - アンミュートの意思を無視して強制的にミュートする
  * @returns {Promise<boolean>} 処理後のミュート状態
  */
-async function muteTab (tab) {
+async function muteTab (tab, force = false) {
   if (!tab || typeof tab.id !== 'number' || tab.id === chrome.tabs.TAB_ID_NONE) {
     return false
   }
@@ -118,13 +56,14 @@ async function muteTab (tab) {
     return true
   }
 
-  try {
-    const unmutedTabIds = await getUnmutedTabIds()
-    if (unmutedTabIds.has(tab.id)) {
-      debugLog('Skip muting (unmuted by user):', tab.id)
-      return false
-    }
+  // 意図的にアンミュートされたタブは尊重する
+  // （新規タブは reason が未設定なのでミュート対象になる）
+  if (!force && tab.mutedInfo?.reason) {
+    debugLog('Skip muting (unmuted intentionally):', tab.id)
+    return false
+  }
 
+  try {
     // muted: true の指定は冪等なため、現在の状態を問わず適用する
     await chrome.tabs.update(tab.id, { muted: true })
     debugLog('Tab muted:', tab.id)
@@ -154,14 +93,18 @@ async function updateTabIcon (tabId, isMuted) {
 }
 
 /**
- * すべてのタブをミュートし、アイコンを同期する
+ * すべてのタブを強制的にミュートし、アイコンを同期する
+ *
+ * ブラウザ起動時やインストール時に呼ばれる。復元されたタブが
+ * 前回セッションの reason を保持している可能性があるため、強制的にミュートする。
+ *
  * @returns {Promise<void>}
  */
 async function syncAllTabs () {
   try {
     const tabs = await chrome.tabs.query({})
     await Promise.all(tabs.map(async (tab) => {
-      const isMuted = await muteTab(tab)
+      const isMuted = await muteTab(tab, true)
       if (typeof tab.id === 'number' && tab.id !== chrome.tabs.TAB_ID_NONE) {
         await updateTabIcon(tab.id, isMuted)
       }
@@ -204,21 +147,14 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   let isMuted = tab.mutedInfo?.muted
 
   // ページ遷移のたびにミュートし直す
-  // （ユーザーがアンミュートを選んだタブは muteTab 側でスキップされる）
+  // （意図的にアンミュートされたタブは muteTab 側でスキップされる）
   if (changeInfo.status === 'loading') {
     isMuted = await muteTab(tab)
   }
 
   if (changeInfo.mutedInfo) {
-    const { muted, reason } = changeInfo.mutedInfo
     debugLog('Muted state changed:', changeInfo.mutedInfo)
-    isMuted = muted
-
-    // タブのスピーカーアイコンなど、ユーザー自身による操作を記録する
-    // 拡張機能による変更は reason が 'extension' になるため対象外
-    if (reason === 'user') {
-      await rememberUnmutedTab(tabId, !muted)
-    }
+    isMuted = changeInfo.mutedInfo.muted
   }
 
   // ページ遷移すると action のタブ固有設定（setIcon）が Chrome によって
@@ -230,26 +166,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 })
 
 /**
- * タブが閉じられたときのイベントハンドラ
- * アンミュート記録を破棄する
- */
-chrome.tabs.onRemoved.addListener(async (tabId) => {
-  await rememberUnmutedTab(tabId, false)
-})
-
-/**
- * タブが別のタブに置き換えられたときのイベントハンドラ
- * 古いタブIDの記録を新しいタブIDへ引き継ぐ
- */
-chrome.tabs.onReplaced.addListener(async (addedTabId, removedTabId) => {
-  const unmutedTabIds = await getUnmutedTabIds()
-  if (unmutedTabIds.has(removedTabId)) {
-    await rememberUnmutedTab(addedTabId, true)
-  }
-  await rememberUnmutedTab(removedTabId, false)
-})
-
-/**
  * 拡張機能のアイコンがクリックされたときのイベントハンドラ
  */
 chrome.action.onClicked.addListener(async (tab) => {
@@ -257,12 +173,10 @@ chrome.action.onClicked.addListener(async (tab) => {
 
   try {
     // タブのミュート状態を切り替える
+    // アンミュートすると mutedInfo.reason が設定され、
+    // 以降 muteTab がこのタブをスキップするようになる
     const newMutedState = !(tab.mutedInfo?.muted ?? false)
     await chrome.tabs.update(tab.id, { muted: newMutedState })
-
-    // アンミュートを選んだタブは、閉じるまでミュートし直さない
-    await rememberUnmutedTab(tab.id, !newMutedState)
-
     debugLog('Tab mute state toggled:', newMutedState)
   } catch (ex) {
     console.error('Error toggling tab mute state:', ex)
