@@ -201,24 +201,31 @@ chrome.tabs.onCreated.addListener(async (tab) => {
  * タブが更新されたときのイベントハンドラ
  */
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  let isMuted = tab.mutedInfo?.muted
+
   // ページ遷移のたびにミュートし直す
   // （ユーザーがアンミュートを選んだタブは muteTab 側でスキップされる）
   if (changeInfo.status === 'loading') {
-    await muteTab(tab)
+    isMuted = await muteTab(tab)
   }
 
-  // ミュート状態が変化したときだけアイコンを更新する
   if (changeInfo.mutedInfo) {
     const { muted, reason } = changeInfo.mutedInfo
     debugLog('Muted state changed:', changeInfo.mutedInfo)
+    isMuted = muted
 
     // タブのスピーカーアイコンなど、ユーザー自身による操作を記録する
     // 拡張機能による変更は reason が 'extension' になるため対象外
     if (reason === 'user') {
       await rememberUnmutedTab(tabId, !muted)
     }
+  }
 
-    await updateTabIcon(tabId, muted)
+  // ページ遷移すると action のタブ固有設定（setIcon）が Chrome によって
+  // リセットされ、manifest の default_icon に戻ってしまう。
+  // そのため status の変化時にもアイコンを設定し直す必要がある
+  if (changeInfo.status || changeInfo.mutedInfo) {
+    await updateTabIcon(tabId, isMuted)
   }
 })
 

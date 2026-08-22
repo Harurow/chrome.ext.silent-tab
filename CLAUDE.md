@@ -61,12 +61,16 @@ etc/                    # ストア掲載用のスクリーンショット・ア
 - **`serialize()` で storage の read-modify-write を直列化している**。
   複数のタブイベントが並行すると get→set の間に別の更新が挟まり、記録が失われるため。
 
-- **`onUpdated` では `changeInfo` を必ず見る**。以前は全更新で `setIcon` を呼んでいた。
-  `changeInfo.mutedInfo` があるときだけアイコンを更新する。
-
 - **アイコンは `chrome.action.setIcon({tabId})` でタブ単位に設定する**。
   未設定のタブには manifest の `default_icon`（ミュートアイコン）が使われるため、
   `syncAllTabs()` で起動時に明示的に同期している。
+
+- **ページ遷移すると `setIcon` のタブ固有設定が Chrome によってリセットされる**。
+  そのため `onUpdated` では `changeInfo.mutedInfo` だけでなく
+  `changeInfo.status` の変化時にもアイコンを設定し直している。
+  「ミュート状態が変わったときだけ setIcon する」という最適化は一見正しく見えるが、
+  遷移後にアイコンだけ default_icon（＝ミュート表示）に戻り、
+  実際はアンミュートなのにミュートされたように見えるバグを生む。実際に踏んだ。
 
 ## 開発
 
