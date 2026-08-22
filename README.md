@@ -9,6 +9,7 @@
 ## Features
 
 - **Auto-Mute**: New tabs are automatically opened in a muted state
+- **Persists on Navigation**: Existing tabs are re-muted automatically when you navigate to another page
 - **Easy Toggle**: Simply click the extension icon to toggle the mute state of a tab
 - **Visual Feedback**: The icon changes based on the tab's mute state
 - **Lightweight**: Operates with minimal resource usage
@@ -40,7 +41,8 @@
 2. To toggle the mute state of a tab, click the extension icon
    - Muted: ![Muted Icon](etc/muted256.png)
    - Unmuted: ![Unmuted Icon](etc/unmuted256.png)
-3. To use in Incognito mode, enable "Allow in Incognito" in the extension settings
+3. A tab you unmute stays unmuted across navigations. This choice is kept until the tab is closed (it resets when the browser restarts)
+4. To use in Incognito mode, enable "Allow in Incognito" in the extension settings
 
 ## Developer Information
 
