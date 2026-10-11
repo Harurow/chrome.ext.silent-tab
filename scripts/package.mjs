@@ -15,6 +15,30 @@ const srcDir = path.join(root, 'src')
 const distDir = path.join(root, 'dist')
 
 const manifest = JSON.parse(await readFile(path.join(srcDir, 'manifest.json'), 'utf8'))
+const pkg = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'))
+const lock = JSON.parse(await readFile(path.join(root, 'package-lock.json'), 'utf8'))
+const serviceWorker = await readFile(path.join(srcDir, 'service_worker.js'), 'utf8')
+
+// 提出物がコミット済みの内容と一致するよう、src/ に未コミットの変更や未追跡ファイルがあれば中止する
+const { stdout: status } = await execFileAsync('git', ['status', '--porcelain', '--', 'src'], { cwd: root })
+if (status.trim()) {
+  throw new Error(`src/ に未コミットの変更があります。コミットしてから実行してください:\n${status}`)
+}
+
+if (!/^const DEBUG = false$/m.test(serviceWorker)) {
+  throw new Error('service_worker.js の DEBUG が false ではありません')
+}
+
+const versions = {
+  'src/manifest.json': manifest.version,
+  'package.json': pkg.version,
+  'package-lock.json': lock.version,
+  'package-lock.json (packages[""])': lock.packages?.['']?.version
+}
+if (new Set(Object.values(versions)).size !== 1 || !manifest.version) {
+  throw new Error(`バージョンが一致しません: ${JSON.stringify(versions)}`)
+}
+
 const zipName = `silent-tab-${manifest.version}.zip`
 const zipPath = path.join(distDir, zipName)
 

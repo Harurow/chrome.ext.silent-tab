@@ -126,7 +126,10 @@ npm run package     # dist/silent-tab-<version>.zip を作成
 1. **バージョンを更新する**。`npm version <x.y.z> --no-git-tag-version`（`package.json` と `package-lock.json`）と
    `src/manifest.json` の手動更新。同期漏れに注意
 2. `npm run lint` が通ることを確認
-3. `npm run package` で `dist/silent-tab-<version>.zip` を作成し、ウェブストアにアップロード
+3. 変更をコミットする（`npm run package` は `src/` に未コミットの変更や未追跡ファイルがあると失敗する）
+4. `npm run package` で `dist/silent-tab-<version>.zip` を作成し、ウェブストアにアップロード。
+   `DEBUG` が `true` のときや、`src/manifest.json`・`package.json`・`package-lock.json` の
+   バージョンが一致しないときも失敗する
 
 ## 未実装
 
