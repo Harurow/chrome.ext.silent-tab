@@ -1,9 +1,10 @@
 {
   "name": "chrome.ext.silent-tab",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Chrome extension.",
   "scripts": {
-    "lint": "eslint src"
+    "lint": "eslint src scripts",
+    "package": "node scripts/package.mjs"
   },
   "author": "www.harurow",
   "license": "MIT",

@@ -11,10 +11,12 @@ src/                    # 拡張機能本体（Chrome にはこのディレク�
 ├── service_worker.js   # 全ロジックがここに集約されている
 ├── _locales/{en,ja}/messages.json
 └── images/{muted,unmuted}{16,24,32,48,128,256}.png
+scripts/package.mjs     # 配布用 zip の作成（npm run package）
+dist/                   # 配布用 zip の出力先（.gitignore 済み）
 etc/                    # ストア掲載用のスクリーンショット・アイコン（配布物ではない）
 ```
 
-ビルド工程はない。`src/` をそのまま zip して配布する。外部ライブラリ・実行時依存はゼロ。
+ビルド工程はない。`src/` をそのまま zip して配布する（`npm run package`）。外部ライブラリ・実行時依存はゼロ。
 
 ## アーキテクチャ
 
@@ -61,6 +63,11 @@ etc/                    # ストア掲載用のスクリーンショット・ア
 - **`syncAllTabs()` は `muteTab(tab, true)` で強制ミュートする**。
   ブラウザ再起動で復元されたタブが前セッションの `reason` を保持している可能性があるため、
   起動時だけは `reason` を無視する。これがないと再起動後もアンミュートが引き継がれうる。
+  **`onInstalled` の `reason === 'update'`（拡張機能の更新・再読み込み）でも強制が必要**。
+  Chrome は拡張機能をアンロードするとき、その拡張機能がミュートしたタブを**すべてアンミュートする**。
+  このとき `mutedInfo` は `{muted: false, reason: 'extension', extensionId: 自分}` になり、
+  アイコンでアンミュートした状態と区別できない。強制しないと更新のたびに全タブがアンミュートのまま残る。
+  （「更新時はユーザーのアンミュートを尊重する」修正を試みて Playwright で検証し、この挙動を踏んだ）
 
 - **`muteTab()` の早期 return は `tab.mutedInfo?.muted === true` に限定している**。
   以前は `if (tab && tab.mutedInfo && !tab.mutedInfo.muted)` というガードで、
@@ -83,6 +90,7 @@ etc/                    # ストア掲載用のスクリーンショット・ア
 ```bash
 npm run lint        # eslint 9 + neostandard（standard スタイル: セミコロンなし）
 npm run lint -- --fix
+npm run package     # dist/silent-tab-<version>.zip を作成
 ```
 
 設定は `eslint.config.mjs`（フラット設定）。`chrome` は `env: ['browser', 'webextensions']` で解決。
@@ -97,14 +105,16 @@ npm run lint -- --fix
    - アイコンでアンミュート → 遷移してもアンミュートのまま
    - そのタブを閉じて開き直す → ミュートに戻る
    - ブラウザ再起動 → 全タブミュート
+   - `chrome://extensions/` から再読み込み（＝更新扱い）→ 全タブミュート（アンミュートしていたタブも戻る）
 
 自動テストはない。Chrome API のモックが必要になるため、現状は手動確認のみ。
 
 ## リリース
 
-1. **バージョンを2箇所更新する**（`src/manifest.json` と `package.json`）。同期漏れに注意
+1. **バージョンを更新する**。`npm version <x.y.z> --no-git-tag-version`（`package.json` と `package-lock.json`）と
+   `src/manifest.json` の手動更新。同期漏れに注意
 2. `npm run lint` が通ることを確認
-3. `src/` を zip 化してウェブストアにアップロード（`src.zip` は `.gitignore` 済み）
+3. `npm run package` で `dist/silent-tab-<version>.zip` を作成し、ウェブストアにアップロード
 
 ## 未実装
 

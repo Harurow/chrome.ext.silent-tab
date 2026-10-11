@@ -1,8 +1,8 @@
 {
   "app_title": {
-    "message": "silent tab"
+    "message": "Silent Tab"
   },
   "app_description": {
-    "message": "Always open tabs on mute"
+    "message": "Always open tabs muted"
   }
 }
