@@ -92,6 +92,12 @@ async function updateTabIcon (tabId, isMuted) {
   }
 }
 
+// 全タブを同期済みであることを示す目印（グローバルなバッジ背景色）
+// グローバルな action の状態は Service Worker の停止・再起動では保持され、
+// 拡張機能のアンロード（無効化・更新）でリセットされる。
+// バッジのテキストは設定しないので、背景色を変えても表示には影響しない
+const SYNCED_MARKER_COLOR = [1, 2, 3, 255]
+
 /**
  * すべてのタブを強制的にミュートし、アイコンを同期する
  *
@@ -102,6 +108,7 @@ async function updateTabIcon (tabId, isMuted) {
  */
 async function syncAllTabs () {
   try {
+    await chrome.action.setBadgeBackgroundColor({ color: SYNCED_MARKER_COLOR })
     const tabs = await chrome.tabs.query({})
     await Promise.all(tabs.map(async (tab) => {
       const isMuted = await muteTab(tab, true)
@@ -113,6 +120,32 @@ async function syncAllTabs () {
   } catch (ex) {
     console.error('Error syncing tabs:', ex)
   }
+}
+
+/**
+ * 拡張機能の読み込み後にまだ同期していなければ、すべてのタブを同期する
+ *
+ * 無効化→再有効化では onInstalled も onStartup も発火しない。一方で Chrome は
+ * 無効化時に、この拡張機能がミュートしたタブをすべてアンミュートする。
+ * そのときの mutedInfo は「アイコンでアンミュート」と区別できないため、
+ * Service Worker の起動ごとに目印を確認し、無ければ同期する。
+ *
+ * @returns {Promise<void>}
+ */
+async function syncAllTabsIfNeeded () {
+  let color
+  try {
+    color = await chrome.action.getBadgeBackgroundColor({})
+  } catch (ex) {
+    // 判定できないときは同期しない（起動のたびにアンミュートを取り消さないため）
+    console.error('Error reading sync marker:', ex)
+    return
+  }
+  if (SYNCED_MARKER_COLOR.every((value, i) => color[i] === value)) {
+    return
+  }
+  debugLog('Sync marker not found')
+  await syncAllTabs()
 }
 
 /**
@@ -182,3 +215,6 @@ chrome.action.onClicked.addListener(async (tab) => {
     console.error('Error toggling tab mute state:', ex)
   }
 })
+
+// Service Worker の起動時（無効化→再有効化を含む）に同期漏れがないか確認する
+syncAllTabsIfNeeded()

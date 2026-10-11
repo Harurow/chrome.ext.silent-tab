@@ -26,6 +26,7 @@ etc/                    # ストア掲載用のスクリーンショット・ア
 | イベント | 処理 |
 |---|---|
 | `runtime.onInstalled` / `runtime.onStartup` | `syncAllTabs()` — 全タブをミュートし、アイコンを同期 |
+| Service Worker の起動（トップレベル） | `syncAllTabsIfNeeded()` — 同期済みの目印が無ければ `syncAllTabs()`（無効化→再有効化の検出） |
 | `tabs.onCreated` | `muteTab()` |
 | `tabs.onUpdated` (`status === 'loading'`) | `muteTab()` — ページ遷移のたびに再ミュート |
 | `tabs.onUpdated` (`changeInfo.mutedInfo`) | アイコン更新 |
@@ -69,6 +70,15 @@ etc/                    # ストア掲載用のスクリーンショット・ア
   アイコンでアンミュートした状態と区別できない。強制しないと更新のたびに全タブがアンミュートのまま残る。
   （「更新時はユーザーのアンミュートを尊重する」修正を試みて Playwright で検証し、この挙動を踏んだ）
 
+- **無効化→再有効化は「同期済みの目印」で検出する**。
+  無効化でも上記のアンミュートが起きるが、再有効化では `onInstalled` も `onStartup` も発火しない。
+  そのため `syncAllTabs()` がグローバルなバッジ背景色（`SYNCED_MARKER_COLOR`）を目印として設定し、
+  Service Worker の起動ごとに `syncAllTabsIfNeeded()` が目印の有無を確認する。
+  グローバルな action の状態は **SW のアイドル停止→再起動では保持され、拡張機能のアンロードでリセットされる**
+  （どちらも Playwright で確認済み）。バッジのテキストは設定しないので表示には影響しない。
+  `storage` を使わずに済ませるための手段なので、目印の判定に失敗したときは同期しない側に倒している
+  （同期する側に倒すと、SW が起動するたびにユーザーのアンミュートが取り消される）。
+
 - **`muteTab()` の早期 return は `tab.mutedInfo?.muted === true` に限定している**。
   以前は `if (tab && tab.mutedInfo && !tab.mutedInfo.muted)` というガードで、
   `mutedInfo` が取れないときに何もせず抜けていた。これが「たまにミュートされない」原因だった。
@@ -106,6 +116,8 @@ npm run package     # dist/silent-tab-<version>.zip を作成
    - そのタブを閉じて開き直す → ミュートに戻る
    - ブラウザ再起動 → 全タブミュート
    - `chrome://extensions/` から再読み込み（＝更新扱い）→ 全タブミュート（アンミュートしていたタブも戻る）
+   - `chrome://extensions/` で無効化→有効化 → 全タブミュート（アンミュートしていたタブも戻る）
+   - アンミュートしたタブを置いたまま 30 秒以上放置（SW がアイドル停止）→ 別タブを開いてもアンミュートのまま
 
 自動テストはない。Chrome API のモックが必要になるため、現状は手動確認のみ。
 
