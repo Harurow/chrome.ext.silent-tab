@@ -35,7 +35,8 @@ EXTENSION_PATH=/tmp/silent-tab-pkg npm test
 | **静的** | manifest の構造・権限ゼロ・参照先の実在・バージョンの一致 | `scripts/validate-manifest.mjs` | `npm run validate` |
 | **手動** | 実際に音が鳴らないこと、タブのスピーカーを押す操作、描画されたアイコンの見た目 | チェックリスト | [MANUAL-CHECKLIST.md](MANUAL-CHECKLIST.md) |
 
-**自動でテストできるものは自動でテストする。** 手動確認に回すのは、自動化できないと確かめたものだけにする（`AGENTS.md`）。
+**自動でテストできるものは自動でテストする。** 手動確認に回すのは、自動化できないと確かめたものだけにする。
+試して自動化できなかったものは、方法と結果を下の「自動化できないと確かめたもの」に書く。自動テストに移した項目は [MANUAL-CHECKLIST.md](MANUAL-CHECKLIST.md) から外す（二重に持たない）。
 
 ## 自動テストの仕組み
 
