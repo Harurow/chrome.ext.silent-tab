@@ -1,7 +1,7 @@
 # 開発フロー
 
-要件定義 → 設計 → 実装 → レビュー → コミット の順に、担当を分けたエージェントで進める。
-定義は `.claude/agents/` にある。構成は [kabu-tantan](https://github.com/Harurow/chrome.ext.kabu-tantan) に合わせている。
+要件定義 → 設計 → 実装 → レビュー → コミット → push の順に進める。
+工程ごとの担当エージェントの定義は `.claude/agents/` にある（どれを使うかは「サブエージェントに渡す基準」）。構成は [kabu-tantan](https://github.com/Harurow/chrome.ext.kabu-tantan) に合わせている。
 
 ## 全体の流れ
 
@@ -14,6 +14,7 @@ flowchart TD
     REVIEWER["reviewer<br/>レビュー"]
     GATE{"npm run check<br/>+ レビュー承認"}
     COMMIT(["コミット"])
+    PUSH(["push"])
 
     USER -->|"やりたいこと"| ANALYST
     ANALYST <-->|"対話で要件を詰める"| USER
@@ -23,6 +24,7 @@ flowchart TD
     REVIEWER -->|"🔴 Critical あり"| DEVELOPER
     REVIEWER -->|"問題なし"| GATE
     GATE -->|"npm run approve"| COMMIT
+    COMMIT --> PUSH
 
     ARCHITECT -.->|"要件が曖昧なら差し戻す"| ANALYST
     DEVELOPER -.->|"仕様に矛盾があれば差し戻す"| ARCHITECT
@@ -34,8 +36,24 @@ flowchart TD
     LEAD -.-> REVIEWER
 ```
 
-小さな修正（文言・1か所のバグ修正）で全工程を回す必要は無い。**省いてよいのは analyst と architect まで。**
-レビューとコミットゲートは省かない。
+担当に渡すかどうかは、変更の大きさではなく下の「サブエージェントに渡す基準」で決める。
+渡さずにメインセッションが自分で書くときも、要件・仕様・ADR・テストの文書は、担当が書くときと同じように更新する。
+**レビュー（`reviewer`）とコミットゲートは省かない。**
+
+## サブエージェントに渡す基準
+
+メインセッション（利用者と直接やり取りしている AI）は、担当を指定せずに起動したなら、どの場所も自分で書き換えてよい。
+`claude --agent <担当>` で起動したときは、その担当の定義に従う。
+サブエージェントに渡すのは、次のどれかに当たるときだけにする（利用者の全プロジェクト共通の指示に合わせている）。
+
+| 渡すとき | 例 |
+| --- | --- |
+| 独立した確認になる | レビュー。**`reviewer` には必ず渡す** |
+| 互いに独立した作業を並行させて、時間を縮められる | 仕様の整理と、別の箇所の実装を同時に進める |
+| 利用者が工程を回すと決めた | 利用者が `claude --agent lead` / `claude --agent analyst` で起動した |
+
+渡すときは、目的・書き換えてよい場所・完了の条件・読むべき資料（ファイルと ID）・分かっている阻害を伝える。
+返ってきた結果はそのまま信じず、自分で確かめてから取り込む。
 
 ## エージェント
 
@@ -50,6 +68,10 @@ flowchart TD
 `AGENTS.md`・`docs/WORKFLOW.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
 
 `reviewer` は `tools` に `Write` / `Edit` を持たない。ただし `Bash` は持つので、書き換えをツールの側で完全に防げてはいない（定義で禁じている）。
+
+`lead` の `tools` にある `Agent(analyst, architect, developer, reviewer)` の種類の制限は、`claude --agent lead` でメインとして動かしたときだけ効く。
+サブエージェントとして呼ばれた `lead` では括弧の中が無視され、どの種類のエージェントも呼べる（サブエージェントは既定で、さらにサブエージェントを呼べる。
+2026-10-12 に[公式ドキュメント](https://code.claude.com/docs/en/sub-agents)で確認）。
 
 `analyst` / `architect` / `reviewer` は `effort: high`（掘り下げと網羅性が要るため）。
 
@@ -72,7 +94,7 @@ claude --agent analyst   # 要件から決める
 claude --agent lead      # 工程をまとめて回す
 ```
 
-単発で使う場合: 仕様だけ整理する → `architect` ／ 仕様が決まっている実装 → `developer` ／ 既存コードの点検 → `reviewer`
+利用者が `claude --agent` で単発に起動する場合: 仕様だけ整理する → `architect` ／ 仕様が決まっている実装 → `developer` ／ 既存コードの点検 → `reviewer`
 
 ## コミットゲート
 
@@ -97,6 +119,9 @@ npm run approve "レビュー通過。SPEC-SW-05 の修正"
 
 # 3. コミット（2 とは別の Bash 呼び出しで実行する）
 git commit -m "..."
+
+# 4. push（承認からコミットまでに何も変えていなければ、テストは流し直さない）
+git push
 ```
 
 > **`npm run approve` と `git commit` を1回の呼び出しにまとめない。**
