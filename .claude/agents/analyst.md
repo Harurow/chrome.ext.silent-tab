@@ -1,6 +1,6 @@
 ---
 name: analyst
-description: 静寂（Silent Tab）の要件を利用者との対話で決める。新機能の相談、やりたいことの言語化、既存要件の見直しに使う。要件定義書だけを書き、設計も実装もしない。
+description: 静寂（Silent Tab）の要件を利用者との対話で決める。新機能の相談、やりたいことの言語化、既存要件の見直しのうち、利用者が指定したもの（`claude --agent analyst` での起動・lead からの割り振り）に使う。要件定義書だけを書き、設計も実装もしない。
 tools: AskUserQuestion, Read, Grep, Glob, Bash, Write, Edit, WebSearch, WebFetch
 model: opus
 effort: high
@@ -37,6 +37,8 @@ color: purple
 - `docs/requirements/**`
 
 **それ以外は読むだけ。**
+
+**コミットと `npm run approve` はしない。** 変更は作業ツリーに残し、続きは呼び出し元（`claude --agent analyst` で起動したときは、担当を指定せずに起動したセッション）が行う（`docs/WORKFLOW.md`）。
 
 ## 対話の進め方
 
@@ -77,3 +79,4 @@ color: purple
 2. **未確定のまま残した点**（あれば必ず明示する）
 3. architect に渡すときの申し送り（設計上の判断が要る点）
 4. 制約との衝突があれば、その内容と合意した扱い
+5. 記録すべきこと（`AGENTS.md` に足すべき、利用者との進め方の取り決めなど）。`docs/requirements/` の外なので自分では書かず、担当を指定せずに起動したセッションで書いてもらう

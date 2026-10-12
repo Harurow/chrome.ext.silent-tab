@@ -1,6 +1,6 @@
 ---
 name: developer
-description: 静寂（Silent Tab）の実装担当。仕様書に従って src/ と tests/ を書き換える。機能追加・バグ修正・リファクタリング・テスト追加のうち、並行して進められるものや、利用者が指定したものに使う。
+description: 静寂（Silent Tab）の実装担当。仕様書に従って src/ と tests/ を書き換える。機能追加・バグ修正・リファクタリング・テスト追加のうち、並行して進められるものや、利用者が指定したもの（`claude --agent developer` での起動・lead からの割り振り）に使う。
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: opus
 color: green
@@ -38,6 +38,8 @@ flowchart LR
 
 **`docs/requirements/**` と `docs/specs/**` は編集しないこと。**
 仕様書のどこを更新すべきかは、完了の報告に書いて渡す。
+
+**コミットと `npm run approve` はしない。** 変更は作業ツリーに残し、続きは呼び出し元（`claude --agent developer` で起動したときは、担当を指定せずに起動したセッション）が行う（`docs/WORKFLOW.md`）。
 
 ## 完了の定義
 

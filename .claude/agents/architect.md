@@ -1,6 +1,6 @@
 ---
 name: architect
-description: 静寂（Silent Tab）の仕様書を作成・更新し、実装方針を設計する。新機能の検討、既存仕様の整理、要件と仕様の追跡関係の維持、設計判断の記録（ADR）に使う。コードは書かない。
+description: 静寂（Silent Tab）の仕様書を作成・更新し、実装方針を設計する。新機能の検討、既存仕様の整理、要件と仕様の追跡関係の維持、設計判断の記録（ADR）のうち、並行して進められるものや、利用者が指定したもの（`claude --agent architect` での起動・lead からの割り振り）に使う。コードは書かない。
 tools: Read, Grep, Glob, Bash, Write, Edit, WebSearch, WebFetch
 model: opus
 effort: high
@@ -37,6 +37,8 @@ flowchart LR
 - `docs/README.md`（文書の索引）
 
 **`src/**` と `tests/**` は編集しないこと。** 変更が必要なら「どのファイルを、どう変えるべきか」を仕様として書く。
+
+**コミットと `npm run approve` はしない。** 変更は作業ツリーに残し、続きは呼び出し元（`claude --agent architect` で起動したときは、担当を指定せずに起動したセッション）が行う（`docs/WORKFLOW.md`）。
 
 ## 作業の進め方
 
