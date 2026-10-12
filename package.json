@@ -1,14 +1,31 @@
 {
   "name": "chrome.ext.silent-tab",
   "version": "1.1.1",
-  "description": "Chrome extension.",
-  "scripts": {
-    "lint": "eslint src scripts",
-    "package": "node scripts/package.mjs"
+  "private": true,
+  "description": "タブを常にミュート状態に保ち、予期しない音声再生を防ぐ Chrome 拡張機能「静寂（Silent Tab）」",
+  "homepage": "https://github.com/Harurow/chrome.ext.silent-tab",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Harurow/chrome.ext.silent-tab.git"
   },
   "author": "www.harurow",
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "fix": "eslint . --fix",
+    "validate": "node scripts/validate-manifest.mjs",
+    "test": "playwright test",
+    "check": "npm run lint && npm run validate && npm test && npm run docs:tests:check",
+    "package": "node scripts/package.mjs",
+    "docs:tests": "node scripts/test-catalog.mjs",
+    "docs:tests:check": "node scripts/test-catalog.mjs --check",
+    "approve": "node scripts/approve.mjs"
+  },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "eslint": "^9.39.5",
     "neostandard": "^0.13.0"
   }

@@ -1,143 +1,267 @@
-# 静寂（Silent Tab）
+# AGENTS.md — 静寂（Silent Tab）開発ガイド
 
-Chrome 拡張機能（Manifest V3）。タブを常にミュート状態に保ち、予期しない音声再生を防ぐ。
-Chrome ウェブストアで公開中: https://chromewebstore.google.com/detail/gaomeihjahnankimbcfcpgadfoldhebk
+> AI エージェント（Claude Code など）が最初に読むファイル。**AI が覚えておくべきことはここに書く**
+> （末尾の「[AI エージェント向けの記録](#ai-エージェント向けの記録)」）。`CLAUDE.md` は置かない。
+
+## プロジェクト概要
+
+タブを常にミュート状態に保ち、予期しない音声の再生を防ぐ Chrome 拡張機能。
+
+- **拡張機能名:** 静寂 / Silent Tab
+- **Manifest:** v3
+- **バージョン:** `src/manifest.json` の `version`（`package.json` / `package-lock.json` と一致させる。`npm run validate` が検証する）
+- **公開:** [Chrome ウェブストア](https://chromewebstore.google.com/detail/gaomeihjahnankimbcfcpgadfoldhebk)
+- **ライセンス:** MIT
+
+## クイックスタート
+
+```bash
+npm install
+npx playwright install chromium   # 初回のみ
+
+npm run lint          # ESLint
+npm run fix           # 自動修正
+npm run validate      # manifest.json の構造・権限ゼロ・参照先・バージョン整合を検証
+npm test              # Playwright による E2E テスト（約1分20秒）
+npm run check         # lint + validate + test + テストカタログが最新か
+npm run docs:tests    # docs/TEST-CATALOG.md を再生成
+npm run approve       # レビュー承認を記録する（コミットに必須）
+npm run package       # dist/silent-tab-<version>.zip を作成
+```
+
+> **コミットは、テスト全件が通り、かつ reviewer のレビューが通るまでできない。**
+> `.claude/hooks/commit-gate.sh` が機械的に止める。詳細は [docs/WORKFLOW.md](docs/WORKFLOW.md)。
+
+### Chrome への読み込み
+
+1. `chrome://extensions/` を開く
+2. 「デベロッパーモード」を有効にする
+3. 「パッケージ化されていない拡張機能を読み込む」から `src/` を指定
+
+> ビルドステップは無い。`src/` がそのまま拡張機能として動作する。外部ライブラリ・実行時の依存はゼロ。
+> `service_worker.js` の `DEBUG` を `true` にすると、Service Worker のコンソールにログが出る。
 
 ## 構成
 
 ```text
-src/                    # 拡張機能本体（Chrome にはこのディレクトリを読み込ませる）
+src/                        ← このディレクトリがそのまま拡張機能
 ├── manifest.json
-├── service_worker.js   # 全ロジックがここに集約されている
+├── service_worker.js       # 全ロジックがここに集約されている
 ├── _locales/{en,ja}/messages.json
 └── images/{muted,unmuted}{16,24,32,48,128,256}.png
-scripts/package.mjs     # 配布用 zip の作成（npm run package）
-dist/                   # 配布用 zip の出力先（.gitignore 済み）
-etc/                    # ストア掲載用のスクリーンショット・アイコン（配布物ではない）
+
+scripts/                    # 開発用 Node スクリプト（validate / package / test-catalog / approve）
+tests/                      # Playwright テスト（fixtures/extension.mjs が拡張機能を読み込んだ Chromium を操作する）
+docs/
+├── requirements/           # 要件定義（FR / NFR / CON）
+├── specs/                  # 仕様書（SPEC-xx）← 実装と1対1
+├── adr/                    # 設計判断の記録（ADR-xxxx）
+├── ARCHITECTURE.md         # 全体像・状態をどこに持つか
+├── TESTING.md              # テストの実行方法・仕組み・自動化できないもの
+├── TEST-CATALOG.md         # テスト一覧（自動生成）
+├── MANUAL-CHECKLIST.md     # 手動確認
+└── WORKFLOW.md             # 開発フロー・エージェント・コミットゲート
+etc/                        # ストア掲載用のスクリーンショット・アイコン（配布物ではない）
+dist/                       # 配布用 zip の出力先（.gitignore 済み）
+
+.claude/
+├── agents/                 # 要件 / 設計 / 実装 / レビュー / 調整のエージェント定義
+├── hooks/commit-gate.sh    # コミットゲート（PreToolUse）
+└── settings.json           # フック設定
 ```
 
-ビルド工程はない。`src/` をそのまま zip して配布する（`npm run package`）。外部ライブラリ・実行時依存はゼロ。
+### ドキュメントの役割分担
+
+| ディレクトリ | 書くもの | 担当エージェント |
+| --- | --- | --- |
+| `docs/requirements/` | **満たすべきこと**（FR / NFR / CON） | analyst |
+| `docs/specs/` | **今そうなっていること**（SPEC-xx）。実装と1対1 | architect |
+| `docs/adr/` | **なぜその作りにしたか**。選ばなかった案と理由 | architect |
+| `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md` | テストの方法・自動化できないもの・手動確認 | developer |
+| `src/`, `tests/` | 実装 | developer |
+| — | レビュー（書き換えなし） | reviewer |
+
+索引は [docs/README.md](docs/README.md)。**仕様書は「あるべき姿」ではなく「実際にそうなっているもの」を書く。**
+
+### エージェント
+
+`.claude/agents/` に役割を分けて定義してある。**役割をまたぐ変更をしない。**
+
+| エージェント | 役割 | 書き換えてよい場所 |
+| --- | --- | --- |
+| `lead` | 全体調整。工程を回す | なし |
+| `analyst` | 利用者と対話して要件を決める | `docs/requirements/` |
+| `architect` | 要件から設計・仕様を起こす | `docs/requirements/`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/README.md` |
+| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成） |
+| `reviewer` | 実装と文書を突き合わせて検証する | **なし（読み取り専用）** |
+
+`AGENTS.md`・`docs/WORKFLOW.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
 
 ## アーキテクチャ
 
 `service_worker.js` 1ファイルのイベント駆動。**状態は一切持たない** —
-必要な情報はすべて Chrome 側の `tab.mutedInfo` から読み取る。
+必要な情報はすべて Chrome 側（タブの `mutedInfo` と `action` のグローバルな状態）から読み取る。
 
 | イベント | 処理 |
-|---|---|
-| `runtime.onInstalled` / `runtime.onStartup` | `syncAllTabs()` — 全タブをミュートし、アイコンを同期 |
-| Service Worker の起動（トップレベル） | `syncAllTabsIfNeeded()` — 同期済みの目印が無ければ `syncAllTabs()`（無効化→再有効化の検出） |
+| --- | --- |
+| `runtime.onInstalled` / `runtime.onStartup` | `syncAllTabs()` — 全タブを強制的にミュートし、アイコンを同期し、同期済みの目印を付ける |
+| Service Worker の起動（スクリプトの最上位） | `syncAllTabsIfNeeded()` — 目印が無ければ `syncAllTabs()`（無効化→再有効化の検出） |
 | `tabs.onCreated` | `muteTab()` |
-| `tabs.onUpdated` (`status === 'loading'`) | `muteTab()` — ページ遷移のたびに再ミュート |
-| `tabs.onUpdated` (`changeInfo.mutedInfo`) | アイコン更新 |
-| `action.onClicked` | ミュート状態のトグル |
+| `tabs.onUpdated`（`status === 'loading'`） | `muteTab()` — ページ遷移のたびに再ミュート |
+| `tabs.onUpdated`（`status` か `mutedInfo` の変化） | アイコンを設定し直す |
+| `action.onClicked` | そのタブのミュートを切り替える |
 
-### ミュート方針
+**ミュートの方針:** 既定は「常にミュート」。ただし**利用者がアンミュートしたタブは、閉じるまでミュートし直さない**。
+判定は `tab.mutedInfo.reason` の有無で行う（SPEC-SW-02 の表）。
+起動・インストール・更新・再有効化のときだけは、アンミュートしていたタブも含めて全タブをミュートする（FR-07）。
 
-デフォルトは「常にミュート」。ただし**ユーザーが明示的にアンミュートしたタブは、
-そのタブを閉じるまで再ミュートしない**。
+全体像は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、詳細は [docs/specs/service-worker.md](docs/specs/service-worker.md)。
 
-この例外の判定には `tab.mutedInfo.reason` を使う。`reason` は「最後にミュート状態を
-変更した理由」で、**一度も変更されていないタブでは未設定**になる。
-この拡張機能は自動的にアンミュートしないため、「アンミュート状態かつ `reason` あり」は
-誰かが意図的にアンミュートしたことを意味する。
+## ⚠️ 変更前に読むこと
 
-| タブの状態 | `mutedInfo` | 判定 |
-|---|---|---|
-| 新規タブ | `{muted: false}` | ミュートする |
-| ミュート済み | `{muted: true, reason: 'extension'}` | 何もしない |
-| アイコンでアンミュート | `{muted: false, reason: 'extension'}` | スキップ |
-| タブのスピーカーでアンミュート | `{muted: false, reason: 'user'}` | スキップ |
+どれも、一見正しい「改善」で壊れる箇所。理由と選ばなかった案は仕様・ADR にある。
 
-## 設計上の決定（変更前に読むこと）
+| 決まりごと | 破るとどうなるか | 根拠 |
+| --- | --- | --- |
+| **権限を宣言しない**（`permissions` は空） | インストール時に警告が出る。**製品の売り**なので、権限を足す前に別の手段を探す | NFR-01 / SPEC-MF-03 |
+| **状態を自前で持たない**（`storage` も SW のグローバル変数も使わない） | 権限が要る。SW の停止で消える。1.1.0 は `storage.session` に持っていて複雑だった | CON-03 / ADR-0001 |
+| **`syncAllTabs()` は強制ミュート**（`muteTab(tab, true)`） | 更新のたびに全タブがアンミュートのまま残る。Chrome はアンロード時に全タブをアンミュートし、利用者のアンミュートと区別できない | CON-04 / ADR-0002 |
+| **SW の起動ごとに `syncAllTabsIfNeeded()`**。目印が読めなければ同期しない | 再有効化の後に全タブがアンミュートのまま残る。同期する側に倒すと、SW が起きるたびに利用者のアンミュートが消える | ADR-0003 |
+| **バッジの背景色は目印専用** | 目印が壊れる。バッジを使う機能を足すなら目印の移し先から考える | ADR-0003 |
+| **`muteTab()` の早期 return は `mutedInfo?.muted === true` だけ** | `mutedInfo` が取れないときにミュートされない（「たまにミュートされない」の原因だった） | SPEC-SW-02 |
+| **`status` が変わっただけでもアイコンを設定し直す** | 遷移後にアンミュートなのにミュートのアイコンが出る。Chrome が遷移でタブごとのアイコンを消すため。実際に踏んだ | SPEC-SW-05 |
 
-- **`permissions` は空**。`chrome.tabs.update({muted})` と `tabs.query({})` は
-  権限なしで動く（`url` / `title` / `favIconUrl` に触れないため `tabs` 権限は要らない）。
-  インストール時に権限警告が出ない状態を維持したいので、**権限は増やさない**。
-  これは製品の売りなので、実装の都合で権限を足す前に別の手段を探すこと。
+## コーディング規約
 
-- **状態を自前で持たない**。v1.1.0 の実装では `chrome.storage.session` に
-  アンミュートしたタブIDを記録していたが、`storage` 権限が必要になるうえ、
-  読み書きの直列化・タブ削除時の破棄・`onReplaced` でのID引き継ぎが必要で複雑だった。
-  `mutedInfo.reason` は Chrome が同じ情報を保持しているので、二重管理をやめた。
+- **JavaScript（ES2021+）**、TypeScript は使わない。ビルドしない（CON-02）
+- **インデント:** スペース 2（`.editorconfig`）／**改行:** LF ／**文字コード:** UTF-8
+- **セミコロンなし・シングルクォート**（ESLint 9 + [neostandard](https://github.com/neostandard/neostandard)。flat config: `eslint.config.mjs`）
+- コメントは日本語
 
-- **`syncAllTabs()` は `muteTab(tab, true)` で強制ミュートする**。
-  ブラウザ再起動で復元されたタブが前セッションの `reason` を保持している可能性があるため、
-  起動時だけは `reason` を無視する。これがないと再起動後もアンミュートが引き継がれうる。
-  **`onInstalled` の `reason === 'update'`（拡張機能の更新・再読み込み）でも強制が必要**。
-  Chrome は拡張機能をアンロードするとき、その拡張機能がミュートしたタブを**すべてアンミュートする**。
-  このとき `mutedInfo` は `{muted: false, reason: 'extension', extensionId: 自分}` になり、
-  アイコンでアンミュートした状態と区別できない。強制しないと更新のたびに全タブがアンミュートのまま残る。
-  （「更新時はユーザーのアンミュートを尊重する」修正を試みて Playwright で検証し、この挙動を踏んだ）
+> Markdown の lint（markdownlint-cli2）は入れていない。2026-10-12 時点で、どの版を入れても
+> 依存に修正版の無い high の脆弱性（`braces` の [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) など）が付いてくるため
+> （markdownlint-cli2 0.23.3 を一時ディレクトリに入れて `npm audit` で確認。kabu-tantan は入れている）。
 
-- **無効化→再有効化は「同期済みの目印」で検出する**。
-  無効化でも上記のアンミュートが起きるが、再有効化では `onInstalled` も `onStartup` も発火しない。
-  そのため `syncAllTabs()` がグローバルなバッジ背景色（`SYNCED_MARKER_COLOR`）を目印として設定し、
-  Service Worker の起動ごとに `syncAllTabsIfNeeded()` が目印の有無を確認する。
-  グローバルな action の状態は **SW のアイドル停止→再起動では保持され、拡張機能のアンロードでリセットされる**
-  （どちらも Playwright で確認済み）。バッジのテキストは設定しないので表示には影響しない。
-  `storage` を使わずに済ませるための手段なので、目印の判定に失敗したときは同期しない側に倒している
-  （同期する側に倒すと、SW が起動するたびにユーザーのアンミュートが取り消される）。
+### バージョニング
 
-- **`muteTab()` の早期 return は `tab.mutedInfo?.muted === true` に限定している**。
-  以前は `if (tab && tab.mutedInfo && !tab.mutedInfo.muted)` というガードで、
-  `mutedInfo` が取れないときに何もせず抜けていた。これが「たまにミュートされない」原因だった。
-  `chrome.tabs.update(id, {muted: true})` は冪等なので、状態が不明なら適用してよい。
+セマンティックバージョニング。`src/manifest.json` と `package.json` の**両方**を書き換え、
+`npm install --package-lock-only` で `package-lock.json` を同期する（`npm run validate` が3者の不一致を検出する。SPEC-MF-02）。
 
-- **アイコンは `chrome.action.setIcon({tabId})` でタブ単位に設定する**。
-  未設定のタブには manifest の `default_icon`（ミュートアイコン）が使われるため、
-  `syncAllTabs()` で起動時に明示的に同期している。
+> `npm version` はコミットゲートに止められる（中でコミットしうるため）。使わない。
 
-- **ページ遷移すると `setIcon` のタブ固有設定が Chrome によってリセットされる**。
-  そのため `onUpdated` では `changeInfo.mutedInfo` だけでなく
-  `changeInfo.status` の変化時にもアイコンを設定し直している。
-  「ミュート状態が変わったときだけ setIcon する」という最適化は一見正しく見えるが、
-  遷移後にアイコンだけ default_icon（＝ミュート表示）に戻り、
-  実際はアンミュートなのにミュートされたように見えるバグを生む。実際に踏んだ。
+## テスト
 
-## 開発
+Playwright で拡張機能を実際に Chromium へ読み込んで検証する。詳細は [docs/TESTING.md](docs/TESTING.md)。
 
-```bash
-npm run lint        # eslint 9 + neostandard（standard スタイル: セミコロンなし）
-npm run lint -- --fix
-npm run package     # dist/silent-tab-<version>.zip を作成
-```
+| ファイル | 対象 |
+| --- | --- |
+| `tests/mute.spec.mjs` | 新しいタブ・遷移でのミュート、`muteTab` の判定、アイコンでの切り替えと表示 |
+| `tests/lifecycle.spec.mjs` | 更新・無効化→再有効化・ブラウザの再起動・Service Worker のアイドル停止 |
+| `tests/package.spec.mjs` | `npm run package` の zip 作成と検査 |
 
-設定は `eslint.config.mjs`（フラット設定）。`chrome` は `env: ['browser', 'webextensions']` で解決。
+テストの一覧は [docs/TEST-CATALOG.md](docs/TEST-CATALOG.md)（`npm run docs:tests` で自動生成）。
+**テストを増減したらこれを再生成すること**（`npm run check` が陳腐化を検出する）。
 
-### 動作確認
-
-1. `chrome://extensions/` → デベロッパーモード → 「パッケージ化されていない拡張機能を読み込む」→ `src/`
-2. `service_worker.js` の `DEBUG` を `true` にすると Service Worker のコンソールにログが出る
-3. 確認すべき挙動:
-   - 新規タブ → ミュート
-   - 既存タブで別サイトへ遷移 → ミュート
-   - アイコンでアンミュート → 遷移してもアンミュートのまま
-   - そのタブを閉じて開き直す → ミュートに戻る
-   - ブラウザ再起動 → 全タブミュート
-   - `chrome://extensions/` から再読み込み（＝更新扱い）→ 全タブミュート（アンミュートしていたタブも戻る）
-   - `chrome://extensions/` で無効化→有効化 → 全タブミュート（アンミュートしていたタブも戻る）
-   - アンミュートしたタブを置いたまま 30 秒以上放置（SW がアイドル停止）→ 別タブを開いてもアンミュートのまま
-
-自動テストはない。Chrome API のモックが必要になるため、現状は手動確認のみ。
-
-## リリース
-
-1. **バージョンを更新する**。`npm version <x.y.z> --no-git-tag-version`（`package.json` と `package-lock.json`）と
-   `src/manifest.json` の手動更新。同期漏れに注意
-2. `npm run lint` が通ることを確認
-3. 変更をコミットする（`npm run package` は `src/` に未コミットの変更や未追跡ファイルがあると失敗する）
-4. `npm run package` で `dist/silent-tab-<version>.zip` を作成し、ウェブストアにアップロード。
-   `DEBUG` が `true` のときや、`src/manifest.json`・`package.json`・`package-lock.json` の
-   バージョンが一致しないときも失敗する
-
-## 未実装
-
-- オプションページ（ユーザー設定）
-- ドメインごとの例外設定
-- キーボードショートカット（`commands` API）
+自動化できないものだけを [docs/MANUAL-CHECKLIST.md](docs/MANUAL-CHECKLIST.md) で手動確認する。
 
 ## 制約
 
 - MV3 の Service Worker はコールドスタートに数百 ms かかるため、
-  タブ生成から `onCreated` 到達までの間に音声が再生され始める窓が構造的に残る。完全には塞げない。
+  タブ生成から `onCreated` 到達までの間に音声が再生され始める窓が構造的に残る。完全には塞げない（CON-05）
+
+## AI エージェント向けの記録
+
+**AI が覚えておくべきことは、このファイルに書く。** 個人用のメモリ（Claude Code の auto memory など）には置かない。
+
+**書くのはメインセッション**（利用者と直接やり取りしている AI）。サブエージェントは書かず、
+記録すべきことに気づいたら報告に書いてメインセッションに渡す。本ファイルの変更もコミットゲートを通す。
+
+| 書く | 書かない |
+| --- | --- |
+| 繰り返し効く規則・手順、実行環境の癖、利用者との進め方の取り決め | 進行中の状態（どの版を申請したか等。git log と docs に残る）、個人情報、コードや git 履歴から読み取れること |
+
+> 2026-10-12、kabu-tantan の `AGENTS.md` に合わせてこのファイルを整理した。下の取り決めのうち、
+> 「依頼は必要になった時点でだけ」「自動でテストする」「レビュー → テスト → コミット → push」「リリースの分担」（の AI と利用者の2行）「図は Mermaid で書く」は
+> kabu-tantan で利用者と決めたもので、同じ進め方を取る。それ以外は silent-tab での経験から書いた。
+
+### `CLAUDE.md` は置かない
+
+指示ファイルは `AGENTS.md` だけにする。`@AGENTS.md` だけを書いた `CLAUDE.md` も足さない（2026-10-11 利用者判断）。
+Claude Code は v2.1.277 以降、`CLAUDE.md` が無ければ `AGENTS.md` を読む（[公式ドキュメント](https://code.claude.com/docs/en/memory)）。
+
+> 2026-10-11、「Claude Code は `CLAUDE.md` しか読まない」という古い知識のまま読み込み用の `CLAUDE.md` を足し、
+> 「しっかり調べてください」と指摘された。ツールの挙動を前提にする前に、手元の版（`claude --version`）と公式ドキュメントを確かめる。
+
+### Chrome の挙動は推測せず、Playwright で実測する
+
+Chrome の挙動（`mutedInfo` の値、拡張機能のアンロード時の振る舞い、`action` の状態がいつ消えるか）を前提にした修正は、
+**実装する前に Playwright で再現・実測する。** 方法は [docs/TESTING.md](docs/TESTING.md)「自動テストの仕組み」。
+
+> 2026-10-11、「更新時は利用者のアンミュートを尊重する」修正を推測で入れ、Playwright で確かめたところ
+> 更新のたびに全タブがアンミュートのまま残ると分かった（ADR-0002）。
+
+### 利用者への依頼は、必要になった時点でだけ出す
+
+拡張機能の再読み込み、実機での目視確認、ターミナルでのコマンド実行など、
+利用者に手を動かしてもらう依頼は**実際に必要になったときにだけ**伝える。「後でこれをお願いします」と先に予告しない。
+
+- 待ち状態の報告は「何を待っているか」だけにとどめ、依頼は含めない
+- 複数の依頼をまとめて渡すのは、**すべてが今実行できるとき**だけにする
+- 依頼を出したら、それが完了するまで次の依頼を積まない
+
+### 自動でテストできるものは、自動でテストする
+
+**テストは自動化を基本にする。** 手動確認を頼むのは、自動化できないと確かめたものだけにする。
+
+- 手動確認の項目を足す前、利用者に確認を頼む前に、まず Playwright で再現できないかを試す
+- 試して自動化できなかったときは、方法と結果を [docs/TESTING.md](docs/TESTING.md)「自動化できないと確かめたもの」に書く
+- 自動テストに移した項目は `docs/MANUAL-CHECKLIST.md` から外す（二重に持たない）
+
+> 利用者の言葉（2026-10-11、kabu-tantan）: 「自動でテストできるとか、基本的に自動でテストしてください。」
+
+### 修正したら、レビュー → テスト → コミット → push までをセットで行う
+
+**確認（手順2のレビューと手順3のテスト）は必ず行う。全部 OK だったら、利用者に聞かずにコミットして push する。**
+OK でないものが1つでもあれば、コミットしない。
+
+| 確認 | OK の基準 |
+| --- | --- |
+| レビュー | 🔴 Critical が無いこと（`docs/WORKFLOW.md` のゲートと同じ）。🟡 は直すか、直さない理由を報告に書く |
+| テスト | `npm run approve`（中で `npm run check` を全件流す）が通ること |
+
+1. 修正する
+2. reviewer のレビューを通す。OK が出なければ直して、もう一度レビューを通す
+3. `npm run approve` でテストする（`npm run check` を全件流し、通れば承認を記録する）。通らなければ直して手順2から
+4. 変更を**すべて**コミットする（一部だけ `git add` すると、テストしていない組み合わせが履歴に入りうる）。
+   **`npm run approve` とコミットは別々の Bash 呼び出しで行う**（フックは呼び出しを実行する前に判定する）
+5. push する。手順3のテストで足りるので流し直さない（承認とコミットの間に何か変えたら、手順2からやり直す）
+
+> 利用者の言葉（2026-10-11、kabu-tantan）: 「Code修正したらテストして、まあその前にレビューか。
+> レビューしてOKだったらテストして、コミットしてプッシュ。ここまでがセット。」
+>
+> 2026-10-12、レビューもテストも全部 OK だったのに「コミットして push してよいですか？」と利用者に聞き、
+> 本ファイルにも「push の前に利用者へ確認しない」（＝確認せずに push する、とも読める）と書いていた。
+> 利用者の言葉（2026-10-12、silent-tab）: 「逆ですね。確認しなきゃダメですね。確認して全部OKだったら、コミットしてプッシュですね。」
+
+この言葉の解釈（AI による）: **省いてよいのは利用者への伺いで、確認（レビューとテスト）は省かない。**
+「確認」をレビューとテストに絞ったこと、「全部 OK」の基準を上の表にしたことも解釈である。違っていたら直す。
+
+### リリースの分担
+
+| 担当 | 作業 |
+| --- | --- |
+| AI | コミット → push（上の流れ。確認が全部 OK なら利用者には聞かない）→ `npm run package`。**パッケージ作成は利用者に聞いてから** |
+| 利用者 | zip のアップロードと Chrome ウェブストアへの申請 |
+
+silent-tab で足した手順（kabu-tantan には無い）:
+
+- 版を上げるのは、上の流れのコミットの前（「バージョニング」の手順）
+- アップロードの後、注記付きのタグ `<version>` を付けて push する。`v` は付けない（既存のタグ `1.0.0` / `1.1.1` に合わせる）。
+  注記には版と主な変更を箇条書きで書く（`git cat-file -p 1.1.1` が例）
+
+`npm run package` は、`src/` に未コミットの変更があると止まる（SPEC-PKG-02）。
+リリース前には zip を展開して `EXTENSION_PATH=<展開先> npm test` を流す（[docs/TESTING.md](docs/TESTING.md)）。
+
+### 図は Mermaid で書く
+
+罫線のアスキーアートは日本語が混ざると崩れるので使わない（ディレクトリツリーは例外）。
