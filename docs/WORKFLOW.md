@@ -108,7 +108,11 @@ flowchart LR
     B -->|"無い"| X1["🚫 ブロック"]
     B -->|"ある"| C{"承認時のhashと<br/>現在のhashが一致するか"}
     C -->|"不一致"| X2["🚫 ブロック<br/>承認後に変更された"]
-    C -->|"一致"| OK["✅ コミット実行"]
+    C -->|"一致"| H{"承認したときの<br/>HEAD のままか"}
+    H -->|"動いた"| X3["🚫 ブロック<br/>承認は1回のコミットで使い切る"]
+    H -->|"そのまま"| D{"コミットされる中身（index）が<br/>承認した中身と同じか"}
+    D -->|"違う"| X4["🚫 ブロック<br/>一部だけのコミット・ステージのずれ"]
+    D -->|"同じ"| OK["✅ コミット実行"]
 ```
 
 ### 手順
@@ -118,8 +122,8 @@ flowchart LR
 # 2. 承認を記録する（npm run check も自動で実行される）
 npm run approve "レビュー通過。SPEC-SW-05 の修正"
 
-# 3. コミット（2 とは別の Bash 呼び出しで実行する）
-git commit -m "..."
+# 3. コミット（2 とは別の Bash 呼び出しで実行する。変更はすべて入れる）
+git add -A && git commit -m "..."
 
 # 4. push（承認からコミットまでに何も変えていなければ、テストは流し直さない）
 git push
@@ -130,9 +134,35 @@ git push
 
 ### 承認は変更内容に紐づく
 
-`npm run approve` は、現在の作業ツリーのハッシュ（`git diff HEAD` と未追跡ファイルの中身）を
+`npm run approve` は、現在の作業ツリーのハッシュ（変更をすべて、未追跡のファイルも含めてコミットしたときにできる tree の ID。
+一時的な index で求めるので、ステージの状態によらず作業ツリーの中身だけで決まる）を
 `.claude/review-approved.json` に記録する（`.gitignore` 済み）。
 **承認の後にファイルを1文字でも変えると承認は無効になり、コミットが止まる。**
+
+承認は HEAD にも結びつく（承認のファイルの `head`）。ハッシュは作業ツリーの中身なので、コミットしても変わらない。
+HEAD も比べることで、**承認は1回のコミットで使い切られ**、そのあとの revert・merge・cherry-pick・2回目のコミットは、承認をやり直すまで止まる。
+
+### コミットされる中身を確かめる
+
+`git commit` のときは、作業ツリーに加えて、**実際にコミットされる中身（index）**も承認した中身と比べる
+（2026-10-14 利用者の指示。kabu-tantan で見つかった穴を、こちらにも同じ形で直した）。
+作業ツリーだけを比べていたときは、一部だけステージした・ステージしてから作業ツリーを戻した・パスを指定した、
+といったコミットで、テストしていない中身が履歴に入りえた。確かめ方は kabu-tantan・love-g-rss-reader のコミットゲートと同じ。
+
+- コミットされる中身は、本物の index の写しで求める（本物の index は触らない）。同じ呼び出しで前に `git add -A` があればそれを足し、
+  `git commit -a` なら追跡しているファイルの変更を足す（`-a` は未追跡のファイルを入れないので、未追跡のファイルがあれば止まる）
+- パスを指定したコミットや、一部だけのコミット（`-o` / `-i` / `-p` / `--pathspec-from-file`）は止める
+- `git commit` の前に置けるのは `git add -A` と、読むだけのコマンド（`git status` / `diff` / `log` / `show` / `rev-parse`、`cd`・`echo`・`cat`・`grep` など）だけ。
+  ファイルへ書き出すリダイレクトがあるものも止める（フックは実行の前に判定するので、前で作業ツリーが変わると判定がずれる）
+- 1回の呼び出しで `git commit` を2回以上行うもの、シェル（`bash -c`）やラッパー（`xargs` など。足すパスが見えない）を介した `git commit`、
+  `git -C` / `--git-dir` / `--work-tree` / `-c core.worktree=` / `GIT_DIR=` などで場所を変えた `git commit` は止める
+- ヒアドキュメントの中身（コミットメッセージ）はコマンドとして読まない。ただし取り除くのは、引用符の外の `<<` で始まり、
+  区切りの直後が行末・空白・演算子で（`<<E"O"F` のような一部だけの引用は読まない）、
+  終わりの行が見つかったものだけ（取り除き過ぎると、承認の無い `git commit` を隠して通してしまう）。引用符の中の `<` `>` はリダイレクトとして読まない
+- 判定は `.claude/hooks/commit-gate.mjs` と `scripts/lib/change-hash.mjs`、テストは `tests/commit-gate.spec.mjs`
+
+コミットは上の「手順」のとおり `git add -A && git commit` の形で行う（`npm run approve` とは別の呼び出し）。
+メッセージが複数行なら `git add -A && git commit -F - <<'EOF' … EOF` にする（ヒアドキュメントの中身はコマンドとして読まない）。
 
 ### このゲートが保証すること / しないこと
 
@@ -140,6 +170,7 @@ git push
 | --- | --- |
 | ✅ 保証する | `npm run check`（lint + validate + テスト全件 + テストカタログが最新か）が通っていること |
 | ✅ 保証する | 承認の後にファイルが変わっていないこと |
+| ✅ 保証する | `git commit` でコミットされる中身（index）が、承認した作業ツリーの中身と同じこと（一部だけのコミット・ステージのずれを止める。上の「コミットされる中身を確かめる」） |
 | ❌ 保証しない | **`reviewer` に実際に見せたかどうか** |
 
 **レビューを通したかは `lead` とメインセッションの責任。** 工程を飛ばして `approve` しないこと。
@@ -156,6 +187,8 @@ git push
 | `cd /tmp && git commit` / `bash -c 'git commit'` | `git status` / `git diff` / `git show` |
 | `npm version <引数>`（中で commit しうる。`--no-git-tag-version` を付けても止める） | `npm version`（引数なし。表示するだけ） |
 
+`git commit` は、検出したうえで「コミットされる中身を確かめる」の条件も見る（シェルを介したものは、承認があっても止める）。
+
 判定できない場合（node が無い、入力の JSON が壊れている、ハッシュを計算できない）は**通さない（fail-closed）**。
 
 > 版を上げるときは `npm version` を使わず、`package.json` と `src/manifest.json` を書き換えてから
@@ -171,4 +204,5 @@ git push
 - エージェント定義: `.claude/agents/`
 - フック: `.claude/hooks/commit-gate.sh`（高速パス）, `.claude/hooks/commit-gate.mjs`（解析）, `.claude/settings.json`
 - 承認スクリプト: `scripts/approve.mjs`, `scripts/lib/change-hash.mjs`
+- テスト: `tests/commit-gate.spec.mjs`
 - ドキュメントの索引: [README.md](README.md)

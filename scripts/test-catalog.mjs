@@ -33,6 +33,13 @@ const FILE_INFO = {
     title: '配布用 zip の作成（npm run package）',
     detail: 'ブラウザを使わない。リポジトリを一時ディレクトリに複製し、そこで `scripts/package.mjs` を実行する。',
     specs: 'SPEC-PKG-01, SPEC-PKG-02'
+  },
+  'commit-gate.spec.mjs': {
+    title: 'コミットゲート（コミットされる中身）',
+    detail: 'ブラウザを使わない。一時の git リポジトリで承認を記録し、フック（`.claude/hooks/commit-gate.mjs`）に Bash の呼び出しを渡して、' +
+      'コミットされる中身（index）が承認した作業ツリーの中身と同じときだけ通すことを検証する。' +
+      '一部だけのステージ・パスの指定・`git commit -a` と未追跡のファイル・前に置くコマンド・シェル経由・場所の変更・ヒアドキュメント・引用符とリダイレクトを見る。',
+    specs: 'docs/WORKFLOW.md「コミットされる中身を確かめる」'
   }
 }
 
@@ -45,7 +52,7 @@ const REGRESSION = {
   ミュートし損ねた: '`onCreated` でのミュートが効かなかったタブを、遷移のときに拾えなくなる退行の検出（SPEC-SW-05 / FR-03）',
   'mutedInfo が分からない': '`mutedInfo` が取れないときに何もせず抜け、「たまにミュートされない」状態に戻る退行の検出（SPEC-SW-02）',
   'DEBUG = true': 'デバッグ出力を有効にしたまま配布する事故の検出（SPEC-PKG-02）',
-  未追跡: 'コミットしていない src/ から zip を作り、提出物と履歴が食い違う事故の検出（SPEC-PKG-02）'
+  'src/ に未追跡': 'コミットしていない src/ から zip を作り、提出物と履歴が食い違う事故の検出（SPEC-PKG-02）'
 }
 
 const { stdout } = await execFileAsync(

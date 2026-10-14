@@ -117,11 +117,12 @@ flowchart TD
 
 ```bash
 npm run approve     # npm run check を実行し、通れば承認を記録する
-git commit -m "..." # approve とは別の呼び出しで
+git add -A && git commit -m "..." # approve とは別の呼び出しで。変更はすべて入れる
 git push            # 確認が全部 OK なら、利用者に聞かずに push する（AGENTS.md）
 ```
 
 - **承認は変更内容のハッシュに紐づく。** 承認後にファイルを1文字でも変えると無効になり、レビューからやり直しになる
+- 一部だけのコミット（パスの指定・`-p` など）や、ステージした中身と作業ツリーのずれはゲートが止める（`docs/WORKFLOW.md`「コミットされる中身を確かめる」）
 - `reviewer` の確認を取らずに `npm run approve` を実行しないこと
 
 ## 報告の形式
