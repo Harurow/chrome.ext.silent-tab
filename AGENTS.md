@@ -162,7 +162,7 @@ Playwright で拡張機能を実際に Chromium へ読み込んで検証する�
 | `tests/mute.spec.mjs` | 新しいタブ・遷移でのミュート、`muteTab` の判定、アイコンでの切り替えと表示 |
 | `tests/lifecycle.spec.mjs` | 更新・無効化→再有効化・ブラウザの再起動・Service Worker のアイドル停止 |
 | `tests/package.spec.mjs` | `npm run package` の zip 作成と検査 |
-| `tests/commit-gate.spec.mjs` | コミットゲートのフック: コミットされる中身（index）が承認した中身と同じときだけ通すこと（一時の git リポジトリで。ブラウザは起動しない） |
+| `tests/commit-gate.spec.mjs` | コミットゲートのフック: コミットされる中身（index）が承認した中身と同じときだけ通すこと、commit 以外でコミットを作るコマンドを止めること、承認の記録（`npm run approve`）の条件（一時の git リポジトリで。ブラウザは起動しない） |
 
 テストの一覧は [docs/TEST-CATALOG.md](docs/TEST-CATALOG.md)（`npm run docs:tests` で自動生成）。
 **テストを増減したらこれを再生成すること**（`npm run check` が陳腐化を検出する）。
@@ -221,6 +221,8 @@ OK でないものが1つでもあれば、コミットしない。
 3. `npm run approve` でテストする（`npm run check` を全件流し、通れば承認を記録する）。通らなければ直して手順2から
 4. 変更を**すべて**コミットする（一部だけ `git add` すると、テストしていない組み合わせが履歴に入りうる）。
    一部だけのコミットや、ステージした中身と作業ツリーのずれはゲートが止める（2026-10-14〜）。`git add -A && git commit` の形で行う。
+   `merge`・`cherry-pick`・`revert`・`rebase`・`am`・`git pull`（`--ff-only` か `--dry-run` 以外）は、承認があっても止まる（2026-10-15〜）。
+   途中で止まったものの `--continue` は `git commit` と同じく確かめる（後に手順が残っていれば止まる）。要るときは利用者に相談する。
    **`npm run approve` とコミットは別々の Bash 呼び出しで行う**（フックは呼び出しを実行する前に判定する）
 5. push する。手順3のテストで足りるので流し直さない（承認とコミットの間に何か変えたら、手順2からやり直す）
 

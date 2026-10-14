@@ -12,7 +12,7 @@
  */
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { copyFile, mkdtemp, rm } from 'node:fs/promises'
+import { copyFile, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -68,6 +68,37 @@ export const committedTreeAsync = async (repoRoot, { addAll = false, addTracked 
     if (addTracked) await git(['add', '--update', '--', '.'], repoRoot, env)
     return (await git(['write-tree'], repoRoot, env)).trim()
   })
+}
+
+/**
+ * merge などを --continue したあとに残っている手順の数。残っていれば、同じ呼び出しの中で、確かめていないコミットが続けて作られる。
+ * cherry-pick / revert は sequencer/todo に今の手順と残りがあり（1つだけのときは sequencer が無い）、
+ * rebase は rebase-merge/git-rebase-todo に残りだけがあり、am（と rebase の apply）は rebase-apply/next・last に今と最後の番号がある
+ * （git 2.54 で確かめた）。途中の状態が読めないときは例外（コミットゲートは止める）
+ * @param {string} repoRoot リポジトリのルート
+ * @param {string} subcommand merge / cherry-pick / revert / rebase / am
+ * @returns {Promise<number>}
+ */
+export const remainingStepsAsync = async (repoRoot, subcommand) => {
+  const gitPath = async (name) => path.resolve(repoRoot, (await git(['rev-parse', '--git-path', name], repoRoot)).trim())
+  const exists = async (name) => stat(await gitPath(name)).then(() => true, () => false)
+  /** 手順の行（空行と # で始まる行を除く）の数 */
+  const steps = async (name) => (await readFile(await gitPath(name), 'utf8')).split('\n').filter((l) => l.trim() && !l.startsWith('#')).length
+  const applyLeft = async () => {
+    const [next, last] = await Promise.all(['rebase-apply/next', 'rebase-apply/last'].map(async (name) => (await readFile(await gitPath(name), 'utf8')).trim()))
+    if (!/^\d+$/.test(next) || !/^\d+$/.test(last)) throw new Error('rebase-apply の next / last を読めません')
+    return Math.max(0, Number(last) - Number(next))
+  }
+
+  if (subcommand === 'cherry-pick' || subcommand === 'revert') {
+    return await exists('sequencer') ? Math.max(0, await steps('sequencer/todo') - 1) : 0
+  }
+  if (subcommand === 'rebase') {
+    if (await exists('rebase-merge')) return steps('rebase-merge/git-rebase-todo')
+    return await exists('rebase-apply') ? applyLeft() : 0
+  }
+  if (subcommand === 'am') return await exists('rebase-apply') ? applyLeft() : 0
+  return 0
 }
 
 /**
