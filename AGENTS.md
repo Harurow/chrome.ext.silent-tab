@@ -30,7 +30,7 @@ npm run package       # dist/silent-tab-<version>.zip を作成
 ```
 
 > **コミットは、テスト全件が通り、かつ reviewer のレビューが通るまでできない。**
-> `.claude/hooks/commit-gate.sh` が機械的に止める。詳細は [docs/WORKFLOW.md](docs/WORKFLOW.md)。
+> `.claude/hooks/commit-gate.sh` が機械的に止める。詳細は [docs/notes/workflow.md](docs/notes/workflow.md)。
 
 ### Chrome への読み込み
 
@@ -54,17 +54,25 @@ scripts/                    # 開発用 Node スクリプト（validate / packag
 tests/                      # Playwright テスト（fixtures/extension.mjs が拡張機能を読み込んだ Chromium を操作する）
 docs/
 ├── tasks.md                # 入口: 残りのタスク
-├── requirements.md         # 入口: 何を作るか → requirements/
-├── design.md               # 入口: どう作るか → ARCHITECTURE.md・specs/・adr/
-├── verification.md         # 入口: 確かめ方と結果 → TESTING.md・TEST-CATALOG.md・MANUAL-CHECKLIST.md
-├── requirements/           # 要件定義（FR / NFR / CON）
-├── specs/                  # 仕様書（SPEC-xx）← 実装と1対1
-├── adr/                    # 設計判断の記録（ADR-xxxx）
-├── ARCHITECTURE.md         # 全体像・状態をどこに持つか
-├── TESTING.md              # テストの実行方法・仕組み・自動化できないもの
-├── TEST-CATALOG.md         # テスト一覧（自動生成）
-├── MANUAL-CHECKLIST.md     # 手動確認
-└── WORKFLOW.md             # 開発フロー・エージェント・コミットゲート
+├── requirements.md         # 入口: 何を作るか → notes/requirements/
+├── design.md               # 入口: どう作るか → notes/ の architecture.md・specs/・adr/
+├── verification.md         # 入口: 確かめ方と結果 → TEST-CATALOG.md と notes/ の testing.md・manual-checklist.md
+├── TEST-CATALOG.md         # テスト一覧（npm run docs:tests が作る生成ファイル。ここから動かさない）
+└── notes/                  # 入口から案内する資料
+    ├── requirements/       # 要件定義（FR / NFR / CON）。readme.md に一覧と記述の約束
+    │   ├── background.md       # 背景・目的・スコープ・用語
+    │   ├── functional.md       # 機能要件（FR-xx）
+    │   ├── non-functional.md   # 非機能要件（NFR-xx）
+    │   └── constraints.md      # 制約条件（CON-xx）
+    ├── specs/              # 仕様書（SPEC-xx）← 実装と1対1。readme.md に一覧と記述の約束
+    │   ├── manifest.md         # SPEC-MF   拡張機能の宣言
+    │   ├── service-worker.md   # SPEC-SW   ミュートの判定・同期・アイコン
+    │   └── packaging.md        # SPEC-PKG  配布用 zip の作成
+    ├── adr/                # 設計判断の記録（ADR-xxxx）。readme.md に一覧と書き方
+    ├── architecture.md     # 全体像・状態をどこに持つか・契機ごとの動き
+    ├── testing.md          # テストの実行方法・仕組み・自動化できないもの
+    ├── manual-checklist.md # 手動確認
+    └── workflow.md         # 開発フロー・エージェント・コミットゲート
 etc/                        # ストア掲載用のスクリーンショット・アイコン（配布物ではない）
 dist/                       # 配布用 zip の出力先（.gitignore 済み）
 
@@ -80,16 +88,29 @@ dist/                       # 配布用 zip の出力先（.gitignore 済み）
 | --- | --- | --- |
 | `docs/tasks.md` | **残りのタスク**（AI の分・利用者の分）。済んだ行は、その作業の commit で消す | メインセッション |
 | `docs/requirements.md`, `docs/design.md`, `docs/verification.md` | 入口。下の文書へ案内するだけで、中身は書き写さない | 案内する先の担当 |
-| `docs/requirements/` | **満たすべきこと**（FR / NFR / CON） | analyst |
-| `docs/specs/` | **今そうなっていること**（SPEC-xx）。実装と1対1 | architect |
-| `docs/adr/` | **なぜその作りにしたか**。選ばなかった案と理由 | architect |
-| `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md` | テストの方法・自動化できないもの・手動確認 | developer |
+| `docs/notes/requirements/` | **満たすべきこと**（FR / NFR / CON）。実現手段（実装方法）は書かない | analyst |
+| `docs/notes/specs/` | **今そうなっていること**（SPEC-xx）。実装と1対1。やりたいことや将来の構想は書かない | architect |
+| `docs/notes/adr/` | **なぜその作りにしたか**。選ばなかった案と理由。決まった内容そのものは specs に書く | architect |
+| `docs/notes/architecture.md` | 全体の見取り図。個々の仕様は specs に書く | architect |
+| `docs/notes/testing.md`, `docs/notes/manual-checklist.md` | テストの方法・自動化できないもの・手動確認 | developer |
 | `src/`, `tests/` | 実装 | developer |
 | — | レビュー（書き換えなし） | reviewer |
 
 `docs/` の直下の入口 4 つ（`tasks.md`・`requirements.md`・`design.md`・`verification.md`）は、利用者のどのプロジェクトでも同じ名前にしている。
-新しく書く資料で、上の場所のどれにも当たらないものは `docs/notes/` に置く（名前は英小文字とハイフン）。
-索引は [docs/README.md](docs/README.md)。**仕様書は「あるべき姿」ではなく「実際にそうなっているもの」を書く。**
+新しく書く資料で、上の場所のどれにも当たらないものは `docs/notes/` の直下か `docs/notes/<話題>/` に置く（名前は英小文字とハイフン）。
+`docs/TEST-CATALOG.md` は生成ファイルなので、`docs/` の直下から動かさない（出力先は `scripts/test-catalog.mjs` が決めている）。
+要件（FR など）は `docs/requirements/` に戻さない。その名前は、大きくなった `requirements.md` を分けた部品を置くフォルダとして、共通の docs の決まりで使うため。
+**仕様書は「あるべき姿」ではなく「実際にそうなっているもの」を書く。** 実装と食い違ったら、どちらかが必ずバグ。放置しない。
+
+ID は次の接頭辞で振る。**既存の ID は再利用しない。** 廃止するときは項目を残して「廃止」と明記し、欠番にする。
+
+| 接頭辞 | 対象 | 例 |
+| --- | --- | --- |
+| `FR-` | 機能要件 | `FR-05` |
+| `NFR-` | 非機能要件 | `NFR-01` |
+| `CON-` | 制約条件 | `CON-04` |
+| `SPEC-<領域>-` | 仕様 | `SPEC-SW-04` |
+| `ADR-` | 設計判断の記録 | `ADR-0003` |
 
 ### エージェント
 
@@ -98,16 +119,16 @@ dist/                       # 配布用 zip の出力先（.gitignore 済み）
 | エージェント | 役割 | 書き換えてよい場所 |
 | --- | --- | --- |
 | `lead` | 全体調整。工程を回す | なし |
-| `analyst` | 利用者と対話して要件を決める | `docs/requirements/`, `docs/requirements.md` |
-| `architect` | 要件から設計・仕様を起こす | `docs/requirements/`, `docs/requirements.md`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/design.md`, `docs/README.md` |
-| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成）, `docs/verification.md` |
+| `analyst` | 利用者と対話して要件を決める | `docs/notes/requirements/`, `docs/requirements.md` |
+| `architect` | 要件から設計・仕様を起こす | `docs/notes/requirements/`, `docs/requirements.md`, `docs/notes/specs/`, `docs/notes/architecture.md`, `docs/notes/adr/`, `docs/design.md` |
+| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/notes/testing.md`, `docs/notes/manual-checklist.md`, `docs/TEST-CATALOG.md`（生成）, `docs/verification.md` |
 | `reviewer` | 実装と文書を突き合わせて検証する | **なし（読み取り専用）** |
 
-`AGENTS.md`・`docs/WORKFLOW.md`・`docs/tasks.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
+`AGENTS.md`・`docs/notes/workflow.md`・`docs/tasks.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
 
 担当を指定せずに起動したメインセッションは、この表に関係なくどの場所も自分で書き換えてよい。
-`claude --agent <担当>` で起動したときは、その担当の定義（書き換えてよい場所を含む）に従う。`lead` 以外の担当はコミットもしない（続きは [docs/WORKFLOW.md](docs/WORKFLOW.md)「サブエージェントに渡す基準」）。
-サブエージェントに渡すのは、独立した確認（レビュー）・並行できる作業・利用者が `claude --agent` で工程を回すと決めたときだけ（[docs/WORKFLOW.md](docs/WORKFLOW.md)「サブエージェントに渡す基準」）。
+`claude --agent <担当>` で起動したときは、その担当の定義（書き換えてよい場所を含む）に従う。`lead` 以外の担当はコミットもしない（続きは [docs/notes/workflow.md](docs/notes/workflow.md)「サブエージェントに渡す基準」）。
+サブエージェントに渡すのは、独立した確認（レビュー）・並行できる作業・利用者が `claude --agent` で工程を回すと決めたときだけ（[docs/notes/workflow.md](docs/notes/workflow.md)「サブエージェントに渡す基準」）。
 
 ## アーキテクチャ
 
@@ -127,7 +148,7 @@ dist/                       # 配布用 zip の出力先（.gitignore 済み）
 判定は `tab.mutedInfo.reason` の有無で行う（SPEC-SW-02 の表）。
 起動・インストール・更新・再有効化のときだけは、アンミュートしていたタブも含めて全タブをミュートする（FR-07）。
 
-全体像は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、詳細は [docs/specs/service-worker.md](docs/specs/service-worker.md)。
+全体像は [docs/notes/architecture.md](docs/notes/architecture.md)、詳細は [docs/notes/specs/service-worker.md](docs/notes/specs/service-worker.md)。
 
 ## ⚠️ 変更前に読むこと
 
@@ -163,7 +184,7 @@ dist/                       # 配布用 zip の出力先（.gitignore 済み）
 
 ## テスト
 
-Playwright で拡張機能を実際に Chromium へ読み込んで検証する。詳細は [docs/TESTING.md](docs/TESTING.md)。
+Playwright で拡張機能を実際に Chromium へ読み込んで検証する。詳細は [docs/notes/testing.md](docs/notes/testing.md)。
 
 | ファイル | 対象 |
 | --- | --- |
@@ -179,7 +200,7 @@ Playwright で拡張機能を実際に Chromium へ読み込んで検証する�
 `lifecycle.spec.mjs` のアイドル停止のテストは1件で約50秒かかるので、関係しない変更なら途中では外してよい（`npx playwright test --grep-invert アイドル停止`）。
 **全件はコミットの前に `npm run approve` で必ず流す。**
 
-自動化できないものだけを [docs/MANUAL-CHECKLIST.md](docs/MANUAL-CHECKLIST.md) で手動確認する。
+自動化できないものだけを [docs/notes/manual-checklist.md](docs/notes/manual-checklist.md) で手動確認する。
 
 ## 制約
 
@@ -193,7 +214,7 @@ Playwright で拡張機能を実際に Chromium へ読み込んで検証する�
 **書くのはメインセッション**（利用者と直接やり取りしている AI）。サブエージェントは書かず、
 記録すべきことに気づいたら報告に書いてメインセッションに渡す。本ファイルの変更もコミットゲートを通す。
 
-`claude --agent lead` / `claude --agent analyst` のように担当を指定して起動したセッションも、本ファイル・`docs/WORKFLOW.md`・`.claude/` は書かない（その担当の書き換えてよい場所の外にあるため）。
+`claude --agent lead` / `claude --agent analyst` のように担当を指定して起動したセッションも、本ファイル・`docs/notes/workflow.md`・`.claude/` は書かない（その担当の書き換えてよい場所の外にあるため）。
 記録すべきことは利用者への報告に書き、担当を指定せずに起動したセッションで書いてもらう。
 
 | 書く | 書かない |
@@ -221,7 +242,7 @@ OK でないものが1つでもあれば、コミットしない。
 
 | 確認 | OK の基準 |
 | --- | --- |
-| レビュー | 🔴 Critical が無いこと（`docs/WORKFLOW.md` のゲートと同じ）。🟡 は直すか、直さない理由を報告に書く |
+| レビュー | 🔴 Critical が無いこと（`docs/notes/workflow.md` のゲートと同じ）。🟡 は直すか、直さない理由を報告に書く |
 | テスト | `npm run approve`（中で `npm run check` を全件流す）が通ること |
 
 1. 修正する。振る舞いを変えたらテストを足す・直し、関係するテストを流す（「テスト」の節）
@@ -254,4 +275,4 @@ AI と利用者の分担は共通ルール（`chrome-extensions.md`）に従う�
 - アップロードの後、注記付きのタグ `<version>` を付けて push する。`v` は付けない（既存のタグ `1.0.0` / `1.1.1` に合わせる）。
   注記には版と主な変更を箇条書きで書く（`git cat-file -p 1.1.1` が例）
 - `npm run package` は、`src/` に未コミットの変更があると止まる（SPEC-PKG-02）。
-  リリース前には zip を展開して `EXTENSION_PATH=<展開先> npm test` を流す（[docs/TESTING.md](docs/TESTING.md)）
+  リリース前には zip を展開して `EXTENSION_PATH=<展開先> npm test` を流す（[docs/notes/testing.md](docs/notes/testing.md)）

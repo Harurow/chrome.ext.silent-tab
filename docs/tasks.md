@@ -11,7 +11,6 @@
 - [ ] 依存を最新に上げて全テストを流し、Chrome の挙動の変化に早く気づく（毎月 1 回の繰り返し）。
   `@playwright/test` と同梱の Chromium（`npx playwright install chromium`）、ESLint・neostandard、間接の依存を上げる。
   上げられない依存は、理由を残して据え置く。テストが落ちたら Chrome が変わったのかを調べて直す（版を上げるかは本人が決める）
-- [ ] `docs/README.md` の役割の説明を、全プロジェクト共通の docs のひな形と `AGENTS.md` へ移してから消す。待ち: ひな形の置き場所と中身が決まること
 
 ## 本人がやること
 

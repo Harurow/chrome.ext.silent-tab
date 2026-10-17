@@ -31,7 +31,7 @@
 ## SPEC-PKG-03 配布物そのものを試す
 
 テストは既定で `src/` を読み込むが、環境変数 `EXTENSION_PATH` で読み込む対象を差し替えられる。
-zip を展開したディレクトリを渡すと、**実際に配布するもの**で全テストを流せる（手順は [TESTING.md](../TESTING.md)）。
+zip を展開したディレクトリを渡すと、**実際に配布するもの**で全テストを流せる（手順は [testing.md](../testing.md)）。
 
 - 要件: NFR-05
 - 検証: `review`（`tests/fixtures/extension.mjs` の `extensionPath`）

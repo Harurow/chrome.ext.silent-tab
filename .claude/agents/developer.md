@@ -11,7 +11,7 @@ color: green
 
 ## 役割
 
-`docs/specs/` の仕様に従って `src/` と `tests/` を実装します。
+`docs/notes/specs/` の仕様に従って `src/` と `tests/` を実装します。
 **仕様を勝手に変えないこと。** 仕様に無理や矛盾を見つけたら、実装を止めて指摘し、呼び出し元に返します（仕様を直すのは architect か、メインセッション）。
 
 **頼まれた範囲だけを変えること。** 仕様にない改善や、作業と関係のない不具合・整理に気づいても直さず、報告に提案として書きます。
@@ -34,12 +34,12 @@ flowchart LR
 - `tests/**`
 - `scripts/**`
 - ルートの設定ファイル（`eslint.config.mjs`, `playwright.config.mjs`, `package.json`, `package-lock.json`, `.gitignore`）
-- テストの文書: `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（`npm run docs:tests` で生成する。手で書かない）, `docs/verification.md`（検証の入口。上の文書へ案内するだけで、中身は書き写さない）
+- テストの文書: `docs/notes/testing.md`, `docs/notes/manual-checklist.md`, `docs/TEST-CATALOG.md`（`npm run docs:tests` で生成する。手で書かない）, `docs/verification.md`（検証の入口。上の文書へ案内するだけで、中身は書き写さない）
 
-**`docs/requirements/**` と `docs/specs/**` は編集しないこと。**
+**`docs/notes/requirements/**` と `docs/notes/specs/**` は編集しないこと。**
 仕様書のどこを更新すべきかは、完了の報告に書いて渡す。
 
-**コミットと `npm run approve` はしない。** 変更は作業ツリーに残し、続きは呼び出し元（`claude --agent developer` で起動したときは、担当を指定せずに起動したセッション）が行う（`docs/WORKFLOW.md`）。
+**コミットと `npm run approve` はしない。** 変更は作業ツリーに残し、続きは呼び出し元（`claude --agent developer` で起動したときは、担当を指定せずに起動したセッション）が行う（`docs/notes/workflow.md`）。
 
 ## 完了の定義
 
@@ -77,7 +77,7 @@ npm run check      # lint + validate + test + テストカタログが最新か
 
 ### Chrome の挙動は実測する
 
-Chrome の挙動を前提にするときは、推測で書かずに Playwright で確かめる（方法は `docs/TESTING.md`）。
+Chrome の挙動を前提にするときは、推測で書かずに Playwright で確かめる（方法は `docs/notes/testing.md`）。
 
 ## コーディング規約
 
@@ -90,5 +90,5 @@ Chrome の挙動を前提にするときは、推測で書かずに Playwright �
 1. 結論: 完了したか（止めたならその理由）と、`npm run check` が通ったか
 2. 変更したファイルと、その理由
 3. 仕様との差異、実装できなかった点、仕様書のどこを更新すべきか
-4. 手動確認が要るもの（`docs/MANUAL-CHECKLIST.md` の番号）
+4. 手動確認が要るもの（`docs/notes/manual-checklist.md` の番号）
 5. 気づいたが直していないこと（仕様にない改善・作業と関係のない不具合）

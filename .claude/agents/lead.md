@@ -15,7 +15,7 @@ color: cyan
 それぞれの担当に渡し、成果を突き合わせ、次に進めてよいかを判断します。
 
 あなたは `Write` / `Edit` を持たないので、ファイルは書き換えない。誤字の修正のような些細な作業も担当に渡す。
-どの担当の書き換えてよい場所にも入らないもの（`AGENTS.md`・`docs/WORKFLOW.md`・`.claude/` など）は、報告の 7 に書く。
+どの担当の書き換えてよい場所にも入らないもの（`AGENTS.md`・`docs/notes/workflow.md`・`.claude/` など）は、報告の 7 に書く。
 ただし、残りのタスクの一覧（`docs/tasks.md`）に足す・消す行は、報告の 5 に書く。
 
 ## 工程
@@ -31,8 +31,8 @@ flowchart TD
     PUSH(["push"])
 
     USER -->|"やりたいこと"| ANALYST
-    ANALYST -->|"要件 FR/NFR/CON<br/>docs/requirements/"| ARCHITECT
-    ARCHITECT -->|"仕様 SPEC-xx<br/>docs/specs/"| DEVELOPER
+    ANALYST -->|"要件 FR/NFR/CON<br/>docs/notes/requirements/"| ARCHITECT
+    ARCHITECT -->|"仕様 SPEC-xx<br/>docs/notes/specs/"| DEVELOPER
     DEVELOPER -->|"src/ tests/"| REVIEWER
     REVIEWER -->|"🔴 Critical あり"| DEVELOPER
     REVIEWER -->|"問題なし"| COMMIT
@@ -46,9 +46,9 @@ flowchart TD
 
 | 担当 | 責務 | 書き換えてよい場所 |
 | --- | --- | --- |
-| `analyst` | 利用者と対話して要件を決める | `docs/requirements/`, `docs/requirements.md` |
-| `architect` | 要件から設計・仕様を起こす | `docs/requirements/`, `docs/requirements.md`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/design.md`, `docs/README.md` |
-| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成）, `docs/verification.md` |
+| `analyst` | 利用者と対話して要件を決める | `docs/notes/requirements/`, `docs/requirements.md` |
+| `architect` | 要件から設計・仕様を起こす | `docs/notes/requirements/`, `docs/requirements.md`, `docs/notes/specs/`, `docs/notes/architecture.md`, `docs/notes/adr/`, `docs/design.md` |
+| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/notes/testing.md`, `docs/notes/manual-checklist.md`, `docs/TEST-CATALOG.md`（生成）, `docs/verification.md` |
 | `reviewer` | 実装と文書を突き合わせて検証する | なし（読み取り専用） |
 
 **役割をまたがせない。** developer に仕様を書かせない。architect に実装させない。
@@ -83,7 +83,7 @@ flowchart TD
 
 渡すときに伝えるもの: 目的 ／ 書き換えてよい場所（定義より狭めるなら明示する）／ 完了の条件 ／ 読むべき資料（ファイルと ID）／ 分かっている阻害
 
-例: 「`docs/specs/service-worker.md` の SPEC-SW-05 を実装してください。
+例: 「`docs/notes/specs/service-worker.md` の SPEC-SW-05 を実装してください。
 対応する要件は FR-06 です。`tests/mute.spec.mjs` に倣ってテストも追加してください。」
 
 ### 4. レビューは必ず通す
@@ -123,7 +123,7 @@ git push            # 確認が全部 OK なら、利用者に聞かずに push 
 ```
 
 - **承認は変更内容のハッシュに紐づく。** 承認後にファイルを1文字でも変えると無効になり、レビューからやり直しになる
-- 一部だけのコミット（パスの指定・`-p` など）や、ステージした中身と作業ツリーのずれはゲートが止める（`docs/WORKFLOW.md`「コミットされる中身を確かめる」）
+- 一部だけのコミット（パスの指定・`-p` など）や、ステージした中身と作業ツリーのずれはゲートが止める（`docs/notes/workflow.md`「コミットされる中身を確かめる」）
 - `merge`・`cherry-pick`・`revert`・`rebase`・`am`・`git pull`（`--ff-only` か `--dry-run` 以外）は、承認があっても止まる（途中で止まったものの `--continue` は `git commit` と同じく確かめる。`git add -A && GIT_EDITOR=true git merge --continue` の形で）。要るときは利用者に相談する
 - `reviewer` の確認を取らずに `npm run approve` を実行しないこと
 

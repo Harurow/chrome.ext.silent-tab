@@ -24,10 +24,10 @@
 
 | 表記 | 意味 |
 | --- | --- |
-| `auto` | 自動テスト。`tests/` のテスト名を添える（一覧は [TEST-CATALOG.md](../TEST-CATALOG.md)） |
+| `auto` | 自動テスト。`tests/` のテスト名を添える（一覧は [TEST-CATALOG.md](../../TEST-CATALOG.md)） |
 | `validate` | `npm run validate`（`scripts/validate-manifest.mjs`）が検査する |
 | `review` | 機械的には見ていない。レビューで確かめる |
-| `manual` | 手動確認。[MANUAL-CHECKLIST.md](../MANUAL-CHECKLIST.md) の番号を添える |
+| `manual` | 手動確認。[manual-checklist.md](../manual-checklist.md) の番号を添える |
 
 ## 実装前の仕様の扱い
 

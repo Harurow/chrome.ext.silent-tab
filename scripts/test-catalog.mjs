@@ -41,7 +41,7 @@ const FILE_INFO = {
       '一部だけのステージ・パスの指定・`git commit -a` と未追跡のファイル・前に置くコマンド（`set`・`GIT_` の代入を含む）・シェル経由・場所の変更・ヒアドキュメント・引用符とリダイレクト、' +
       'commit 以外でコミットを作るコマンド（merge などと `--skip`・`git pull`）を止めること、`--continue` の中身と残りの手順（cherry-pick・revert・rebase・am を実際に衝突させる）、止めたときに案内する `--continue` の形が端末もエディタの設定も無い状態でコミットまで終わることを見る。' +
       '承認の記録（`scripts/lib/approval.mjs`）が、チェックの前後で作業ツリーと HEAD が同じときだけ承認することも見る。',
-    specs: 'docs/WORKFLOW.md「コミットされる中身を確かめる」'
+    specs: 'docs/notes/workflow.md「コミットされる中身を確かめる」'
   }
 }
 
@@ -110,7 +110,7 @@ const lines = [
   '',
   `テスト総数: **${total}**`,
   '',
-  'テストの方針・手法は [TESTING.md](TESTING.md) を参照。',
+  'テストの方針・手法は [notes/testing.md](notes/testing.md) を参照。',
   ''
 ]
 
@@ -149,7 +149,7 @@ lines.push('| タブのスピーカーを押す操作そのもの | Playwright�
 lines.push('| ツールバーに描画されたアイコンの見た目 | `setIcon` に渡した画像を記録して見ている。描画結果は見ない。手動確認 M-3 |')
 lines.push('| タブを開いてから Service Worker が動き出すまでの間の音声 | 構造的に塞げない（CON-05）。テストもしない |')
 lines.push('')
-lines.push('これらの確認手順は [MANUAL-CHECKLIST.md](MANUAL-CHECKLIST.md) を参照。')
+lines.push('これらの確認手順は [notes/manual-checklist.md](notes/manual-checklist.md) を参照。')
 lines.push('')
 
 const out = path.join(root, 'docs', 'TEST-CATALOG.md')

@@ -13,7 +13,7 @@ color: blue
 ## 役割
 
 `analyst` が決めた要件を受け取り、**どう作るかを決める**のが責務です。
-決めた内容を `docs/specs/` に仕様として書き、developer に渡します。
+決めた内容を `docs/notes/specs/` に仕様として書き、developer に渡します。
 
 **要件は決めません。** 要件が曖昧・不足していたら、**推測で埋めずに analyst へ差し戻す**。
 **実装もしません。** `src/` と `tests/` は読むだけです。
@@ -30,23 +30,22 @@ flowchart LR
 
 ## 書き換えてよい場所
 
-- `docs/requirements/**`
+- `docs/notes/requirements/**`
 - `docs/requirements.md`（要件の入口）
-- `docs/specs/**`
-- `docs/ARCHITECTURE.md`
-- `docs/adr/**`（設計判断の記録）
+- `docs/notes/specs/**`
+- `docs/notes/architecture.md`
+- `docs/notes/adr/**`（設計判断の記録）
 - `docs/design.md`（設計の入口。上の文書へ案内するだけで、中身は書き写さない）
-- `docs/README.md`（文書の索引）
 
 **`src/**` と `tests/**` は編集しないこと。** 変更が必要なら「どのファイルを、どう変えるべきか」を仕様として書く。
 
-**コミットと `npm run approve` はしない。** 変更は作業ツリーに残し、続きは呼び出し元（`claude --agent architect` で起動したときは、担当を指定せずに起動したセッション）が行う（`docs/WORKFLOW.md`）。
+**コミットと `npm run approve` はしない。** 変更は作業ツリーに残し、続きは呼び出し元（`claude --agent architect` で起動したときは、担当を指定せずに起動したセッション）が行う（`docs/notes/workflow.md`）。
 
 ## 作業の進め方
 
-1. **現状を読む。** `docs/specs/` と `src/service_worker.js` が食い違っていないか必ず確かめる。
+1. **現状を読む。** `docs/notes/specs/` と `src/service_worker.js` が食い違っていないか必ず確かめる。
    仕様書は「あるべき姿」ではなく**実際にそうなっているもの**を書く。まだ実装していない決定は「未実装（予定）」と注記する
-2. **ID を維持する。** 採番は `docs/README.md`。**既存 ID は再利用しない**
+2. **ID を維持する。** 採番は `AGENTS.md`「ドキュメントの役割分担」。**既存 ID は再利用しない**
 3. **追跡関係を切らさない。** 仕様を足したら、どの要件に紐づくかを必ず書く
 4. **検証方法を必ず添える。** `auto`（テスト名）/ `validate` / `review` / `manual`（チェックリストの番号）のどれかを書く
 5. **選択肢を比べて決めたら ADR に残す。** 選ばなかった案とその理由を必ず書く
@@ -60,7 +59,7 @@ flowchart LR
 - **アンロードで Chrome がタブのアンミュートを起こす**（CON-04）。更新・無効化の後の `reason: 'extension'` は、利用者のアンミュートと区別できない
 - **ページ遷移でタブごとのアイコンが消える**（SPEC-SW-05）。「状態が変わったときだけ設定する」最適化は成立しない
 - **バッジの背景色は同期済みの目印に使っている**（ADR-0003）。バッジを使う機能を足すなら、目印の移し先から設計する
-- **Chrome の挙動についての推測で設計しない。** 前提にする挙動は、Playwright で実測してから書く（`docs/TESTING.md` に方法がある）。
+- **Chrome の挙動についての推測で設計しない。** 前提にする挙動は、Playwright で実測してから書く（`docs/notes/testing.md` に方法がある）。
   1.1.1 の開発中に、推測で設計した修正（ADR-0002 の案 b）が実測で成立しないと分かった
 
 ## 成果物の形式

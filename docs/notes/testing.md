@@ -31,12 +31,12 @@ EXTENSION_PATH=/tmp/silent-tab-pkg npm test
 
 | 層 | 対象 | 手段 | 実行 |
 | --- | --- | --- | --- |
-| **自動** | ミュートの判定・同期・目印・アイコンの設定、更新・無効化・再起動・アイドル停止、zip の作成、コミットゲートのフックの判定と承認の記録 | Playwright（一覧は [TEST-CATALOG.md](TEST-CATALOG.md)） | `npm test` |
+| **自動** | ミュートの判定・同期・目印・アイコンの設定、更新・無効化・再起動・アイドル停止、zip の作成、コミットゲートのフックの判定と承認の記録 | Playwright（一覧は [TEST-CATALOG.md](../TEST-CATALOG.md)） | `npm test` |
 | **静的** | manifest の構造・権限ゼロ・参照先の実在・バージョンの一致 | `scripts/validate-manifest.mjs` | `npm run validate` |
-| **手動** | 実際に音が鳴らないこと、タブのスピーカーを押す操作、描画されたアイコンの見た目 | チェックリスト | [MANUAL-CHECKLIST.md](MANUAL-CHECKLIST.md) |
+| **手動** | 実際に音が鳴らないこと、タブのスピーカーを押す操作、描画されたアイコンの見た目 | チェックリスト | [manual-checklist.md](manual-checklist.md) |
 
 **自動でテストできるものは自動でテストする。** 手動確認に回すのは、自動化できないと確かめたものだけにする。
-試して自動化できなかったものは、方法と結果を下の「自動化できないと確かめたもの」に書く。自動テストに移した項目は [MANUAL-CHECKLIST.md](MANUAL-CHECKLIST.md) から外す（二重に持たない）。
+試して自動化できなかったものは、方法と結果を下の「自動化できないと確かめたもの」に書く。自動テストに移した項目は [manual-checklist.md](manual-checklist.md) から外す（二重に持たない）。
 
 ## 自動テストの仕組み
 

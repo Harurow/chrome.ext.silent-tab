@@ -20,7 +20,7 @@
 `src/manifest.json` の `version`、`package.json` の `version`、`package-lock.json` の `version` と `packages[""].version` を常に一致させる。
 
 版を上げるときは `package.json` と `src/manifest.json` を書き換え、`npm install --package-lock-only` で `package-lock.json` を揃える
-（`npm version` はコミットゲートに止められる。`docs/WORKFLOW.md`）。
+（`npm version` はコミットゲートに止められる。`docs/notes/workflow.md`）。
 
 - 要件: NFR-04
 - 検証: `validate`（不一致で exit 1）。`npm run package` も同じ検査をする（SPEC-PKG-02）

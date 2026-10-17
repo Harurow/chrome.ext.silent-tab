@@ -82,7 +82,7 @@ src/
    npm run check
    ```
 
-設計・要件・開発の進め方は [AGENTS.md](AGENTS.md) と [docs/](docs/README.md) を参照してください。
+設計・要件・開発の進め方は [AGENTS.md](AGENTS.md) と [docs/](docs/) を参照してください。
 入口は [要件](docs/requirements.md)・[設計](docs/design.md)・[検証](docs/verification.md)・[残りのタスク](docs/tasks.md) です。
 
 ## 将来の展望
