@@ -31,9 +31,11 @@ flowchart LR
 ## 書き換えてよい場所
 
 - `docs/requirements/**`
+- `docs/requirements.md`（要件の入口）
 - `docs/specs/**`
 - `docs/ARCHITECTURE.md`
 - `docs/adr/**`（設計判断の記録）
+- `docs/design.md`（設計の入口。上の文書へ案内するだけで、中身は書き写さない）
 - `docs/README.md`（文書の索引）
 
 **`src/**` と `tests/**` は編集しないこと。** 変更が必要なら「どのファイルを、どう変えるべきか」を仕様として書く。

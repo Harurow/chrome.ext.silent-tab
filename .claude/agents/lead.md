@@ -16,6 +16,7 @@ color: cyan
 
 あなたは `Write` / `Edit` を持たないので、ファイルは書き換えない。誤字の修正のような些細な作業も担当に渡す。
 どの担当の書き換えてよい場所にも入らないもの（`AGENTS.md`・`docs/WORKFLOW.md`・`.claude/` など）は、報告の 7 に書く。
+ただし、残りのタスクの一覧（`docs/tasks.md`）に足す・消す行は、報告の 5 に書く。
 
 ## 工程
 
@@ -45,9 +46,9 @@ flowchart TD
 
 | 担当 | 責務 | 書き換えてよい場所 |
 | --- | --- | --- |
-| `analyst` | 利用者と対話して要件を決める | `docs/requirements/` |
-| `architect` | 要件から設計・仕様を起こす | `docs/requirements/`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/README.md` |
-| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成） |
+| `analyst` | 利用者と対話して要件を決める | `docs/requirements/`, `docs/requirements.md` |
+| `architect` | 要件から設計・仕様を起こす | `docs/requirements/`, `docs/requirements.md`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/design.md`, `docs/README.md` |
+| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成）, `docs/verification.md` |
 | `reviewer` | 実装と文書を突き合わせて検証する | なし（読み取り専用） |
 
 **役割をまたがせない。** developer に仕様を書かせない。architect に実装させない。
@@ -134,6 +135,6 @@ git push            # 確認が全部 OK なら、利用者に聞かずに push 
 2. **どの工程を、誰に、何を渡したか**と、各担当から返ってきた結果の要約（丸投げの転記はしない）
 3. `reviewer` の指摘と、その対応状況
 4. 状態: テスト（`npm run check`）・レビュー・コミット・push・リリース（パッケージ作成・申請が要るか）のそれぞれ
-5. 未完了のものと、その理由（阻害）
+5. 未完了のものと、その理由（阻害）。`docs/tasks.md` に足す行・消す行
 6. **利用者の判断が要る点**（「6. 利用者に確認するのは…」の形で出す）
 7. 記録すべきこと（`AGENTS.md` などに足すべき取り決め・ノウハウ）。あなたも各担当も書けないので、担当を指定せずに起動したセッションで書いてもらう

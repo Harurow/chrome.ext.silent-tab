@@ -4,6 +4,10 @@
 
 ```text
 docs/
+├── tasks.md            入口: 残りのタスク
+├── requirements.md     入口: 何を作るか → requirements/
+├── design.md           入口: どう作るか → ARCHITECTURE.md・specs/・adr/
+├── verification.md     入口: 確かめ方と結果 → TESTING.md・TEST-CATALOG.md・MANUAL-CHECKLIST.md
 ├── requirements/       要件定義 — 「何を満たすべきか」
 │   ├── background.md       背景・目的・スコープ
 │   ├── functional.md       機能要件 (FR-xx)
@@ -61,17 +65,7 @@ flowchart LR
 
 ## 担当エージェント
 
-`.claude/agents/` に役割を分けて定義してある。詳細は [WORKFLOW.md](WORKFLOW.md)。
-
-| エージェント | 役割 | 書き換えてよい場所 |
-| --- | --- | --- |
-| `lead` | 全体調整。工程を回す | なし |
-| `analyst` | 利用者と対話して要件を決める | `docs/requirements/` |
-| `architect` | 要件から設計・仕様を起こす | `docs/requirements/`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/README.md` |
-| `developer` | 実装 | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成） |
-| `reviewer` | レビュー | **なし（読み取り専用）** |
-
-`AGENTS.md`・`docs/WORKFLOW.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
+`.claude/agents/` に役割を分けて定義してある。担当ごとの書き換えてよい場所は [WORKFLOW.md](WORKFLOW.md)「エージェント」にある。
 
 > **コミットは、テスト全件が通り、かつ reviewer のレビューが通るまでできない。**
 > `.claude/hooks/commit-gate.sh` が機械的に止める。

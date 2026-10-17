@@ -57,6 +57,7 @@ npm run check           # lint + validate + test + テストカタログが最�
 
 - 変更が `docs/specs/` の記述と一致しているか。ズレていればどちらが正か指摘する
 - 仕様書・ADR・`docs/ARCHITECTURE.md` の更新漏れが無いか
+- 文書を足した・動かしたなら、`docs/` の直下の入口（`requirements.md`・`design.md`・`verification.md`）の案内が実際の場所と合っているか
 - Chrome の挙動を前提にした変更なら、**実測の根拠**（Playwright のテストか、試した手順）が示されているか
 
 ### 4. 配布

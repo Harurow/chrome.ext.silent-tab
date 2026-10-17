@@ -35,6 +35,7 @@ color: purple
 ## 書き換えてよい場所
 
 - `docs/requirements/**`
+- `docs/requirements.md`（要件の入口。`docs/requirements/` へ案内するだけで、中身は書き写さない）
 
 **それ以外は読むだけ。**
 

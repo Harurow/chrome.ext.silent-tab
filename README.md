@@ -83,6 +83,7 @@ src/
    ```
 
 Design notes, requirements, and the development workflow are in [AGENTS.md](AGENTS.md) and [docs/](docs/README.md) (Japanese).
+The entry points are [requirements](docs/requirements.md), [design](docs/design.md), [verification](docs/verification.md), and [remaining tasks](docs/tasks.md).
 
 ## Future Plans
 

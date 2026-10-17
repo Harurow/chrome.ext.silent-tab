@@ -53,6 +53,10 @@ src/                        ← このディレクトリがそのまま拡張機
 scripts/                    # 開発用 Node スクリプト（validate / package / test-catalog / approve）
 tests/                      # Playwright テスト（fixtures/extension.mjs が拡張機能を読み込んだ Chromium を操作する）
 docs/
+├── tasks.md                # 入口: 残りのタスク
+├── requirements.md         # 入口: 何を作るか → requirements/
+├── design.md               # 入口: どう作るか → ARCHITECTURE.md・specs/・adr/
+├── verification.md         # 入口: 確かめ方と結果 → TESTING.md・TEST-CATALOG.md・MANUAL-CHECKLIST.md
 ├── requirements/           # 要件定義（FR / NFR / CON）
 ├── specs/                  # 仕様書（SPEC-xx）← 実装と1対1
 ├── adr/                    # 設計判断の記録（ADR-xxxx）
@@ -74,6 +78,8 @@ dist/                       # 配布用 zip の出力先（.gitignore 済み）
 
 | ディレクトリ | 書くもの | 担当エージェント |
 | --- | --- | --- |
+| `docs/tasks.md` | **残りのタスク**（AI の分・利用者の分）。済んだ行は、その作業の commit で消す | メインセッション |
+| `docs/requirements.md`, `docs/design.md`, `docs/verification.md` | 入口。下の文書へ案内するだけで、中身は書き写さない | 案内する先の担当 |
 | `docs/requirements/` | **満たすべきこと**（FR / NFR / CON） | analyst |
 | `docs/specs/` | **今そうなっていること**（SPEC-xx）。実装と1対1 | architect |
 | `docs/adr/` | **なぜその作りにしたか**。選ばなかった案と理由 | architect |
@@ -81,6 +87,8 @@ dist/                       # 配布用 zip の出力先（.gitignore 済み）
 | `src/`, `tests/` | 実装 | developer |
 | — | レビュー（書き換えなし） | reviewer |
 
+`docs/` の直下の入口 4 つ（`tasks.md`・`requirements.md`・`design.md`・`verification.md`）は、利用者のどのプロジェクトでも同じ名前にしている。
+新しく書く資料で、上の場所のどれにも当たらないものは `docs/notes/` に置く（名前は英小文字とハイフン）。
 索引は [docs/README.md](docs/README.md)。**仕様書は「あるべき姿」ではなく「実際にそうなっているもの」を書く。**
 
 ### エージェント
@@ -90,12 +98,12 @@ dist/                       # 配布用 zip の出力先（.gitignore 済み）
 | エージェント | 役割 | 書き換えてよい場所 |
 | --- | --- | --- |
 | `lead` | 全体調整。工程を回す | なし |
-| `analyst` | 利用者と対話して要件を決める | `docs/requirements/` |
-| `architect` | 要件から設計・仕様を起こす | `docs/requirements/`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/README.md` |
-| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成） |
+| `analyst` | 利用者と対話して要件を決める | `docs/requirements/`, `docs/requirements.md` |
+| `architect` | 要件から設計・仕様を起こす | `docs/requirements/`, `docs/requirements.md`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/design.md`, `docs/README.md` |
+| `developer` | 仕様に従って実装する | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成）, `docs/verification.md` |
 | `reviewer` | 実装と文書を突き合わせて検証する | **なし（読み取り専用）** |
 
-`AGENTS.md`・`docs/WORKFLOW.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
+`AGENTS.md`・`docs/WORKFLOW.md`・`docs/tasks.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
 
 担当を指定せずに起動したメインセッションは、この表に関係なくどの場所も自分で書き換えてよい。
 `claude --agent <担当>` で起動したときは、その担当の定義（書き換えてよい場所を含む）に従う。`lead` 以外の担当はコミットもしない（続きは [docs/WORKFLOW.md](docs/WORKFLOW.md)「サブエージェントに渡す基準」）。
@@ -192,7 +200,7 @@ Playwright で拡張機能を実際に Chromium へ読み込んで検証する�
 | --- | --- |
 | この拡張機能で繰り返し効く規則・手順、実行環境の癖、利用者との進め方の取り決め | 進行中の状態（どの版を申請したか、次の一手、未決の質問など）、個人情報、コードや git 履歴から読み取れること |
 
-進行中の状態は、git log・docs と、利用者の Obsidian のプロジェクトノートに残す。
+残りのタスクは [docs/tasks.md](docs/tasks.md) に置く。進行中の状態は、git log・docs と、利用者の Obsidian のプロジェクトノートに残す。
 Chrome 拡張機能に共通する取り決めとノウハウは、利用者の共通ルール `~/.claude/rules/chrome-extensions.md` に書く。**このリポジトリで作業するときは、着手前にそのファイルを読む。**
 kabu-tantan と共通の進め方（依頼の出し方・自動テスト優先・リリースの分担・図の書き方）、Chrome の挙動の実測、Playwright での試し方がそこにある（2026-10-12 にここから移した）。
 この2つはこのリポジトリの持ち主の環境での決まりで、ほかの人の環境では従わなくてよい。ここには、この拡張機能に固有のことだけを書く。

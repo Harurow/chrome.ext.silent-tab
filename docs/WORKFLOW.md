@@ -61,12 +61,12 @@ flowchart TD
 | エージェント | 役割 | model | 書き換えてよい場所 |
 | --- | --- | --- | --- |
 | `lead` | 全体調整。工程を回す | opus | なし（自分では作らない） |
-| `analyst` | 利用者と対話して要件を決める | opus | `docs/requirements/` |
-| `architect` | 要件から設計・仕様を起こす | opus | `docs/requirements/`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/README.md` |
-| `developer` | 仕様に従って実装する | opus | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成） |
+| `analyst` | 利用者と対話して要件を決める | opus | `docs/requirements/`, `docs/requirements.md` |
+| `architect` | 要件から設計・仕様を起こす | opus | `docs/requirements/`, `docs/requirements.md`, `docs/specs/`, `docs/ARCHITECTURE.md`, `docs/adr/`, `docs/design.md`, `docs/README.md` |
+| `developer` | 仕様に従って実装する | opus | `src/`, `tests/`, `scripts/`, ルートの設定ファイル, `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（生成）, `docs/verification.md` |
 | `reviewer` | 実装と文書を突き合わせて検証する | opus | **なし（読み取り専用）** |
 
-`AGENTS.md`・`docs/WORKFLOW.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
+`AGENTS.md`・`docs/WORKFLOW.md`・`docs/tasks.md`・`.claude/`・`README.md` / `README.ja.md` はどの担当の書き換え範囲にも入れない。書くのはメインセッション（利用者と直接やり取りしている AI）だけ。
 
 `reviewer` は `tools` に `Write` / `Edit` を持たない。ただし `Bash` は持つので、書き換えをツールの側で完全に防げてはいない（定義で禁じている）。
 
@@ -239,4 +239,5 @@ HEAD も比べることで、**承認は1回のコミットで使い切られ**�
 - フック: `.claude/hooks/commit-gate.sh`（高速パス）, `.claude/hooks/commit-gate.mjs`（解析）, `.claude/settings.json`
 - 承認スクリプト: `scripts/approve.mjs`, `scripts/lib/approval.mjs`, `scripts/lib/change-hash.mjs`
 - テスト: `tests/commit-gate.spec.mjs`
+- ドキュメントの入口: [tasks.md](tasks.md)・[requirements.md](requirements.md)・[design.md](design.md)・[verification.md](verification.md)
 - ドキュメントの索引: [README.md](README.md)

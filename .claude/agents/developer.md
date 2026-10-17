@@ -34,7 +34,7 @@ flowchart LR
 - `tests/**`
 - `scripts/**`
 - ルートの設定ファイル（`eslint.config.mjs`, `playwright.config.mjs`, `package.json`, `package-lock.json`, `.gitignore`）
-- テストの文書: `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（`npm run docs:tests` で生成する。手で書かない）
+- テストの文書: `docs/TESTING.md`, `docs/MANUAL-CHECKLIST.md`, `docs/TEST-CATALOG.md`（`npm run docs:tests` で生成する。手で書かない）, `docs/verification.md`（検証の入口。上の文書へ案内するだけで、中身は書き写さない）
 
 **`docs/requirements/**` と `docs/specs/**` は編集しないこと。**
 仕様書のどこを更新すべきかは、完了の報告に書いて渡す。
